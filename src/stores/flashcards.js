@@ -4,14 +4,18 @@ import { getAll, getOne, putOne, removeOne } from '../database/repository'
 import { uid } from '../utils/id'
 import { hasErrors, validateFlashcard } from '../utils/validators'
 import { isDue, isMastered, newCardFields } from '../services/flashcardEngine'
-import { reviewFlashcard } from '../services/flashcardService'
+import { backfillCardHistory, reviewFlashcard } from '../services/flashcardService'
 import { useClockStore } from './clock'
 import { useReviewsStore } from './reviews'
 
 export const useFlashcardsStore = defineStore('flashcards', () => {
   const items = ref([])
   const clock = useClockStore()
+  /** Sessão em andamento (memória): { mode: 'scheduled' | 'free', ids: [] } */
+  const session = ref({ mode: 'free', ids: [] })
+  const startSession = (ids, mode = 'free') => { session.value = { mode, ids: [...ids] } }
   async function load() {
+    await backfillCardHistory()
     items.value = (await getAll('flashcards')).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   }
   const due = computed(() => items.value.filter((c) => isDue(c, clock.today)).sort((a, b) => a.dueDate.localeCompare(b.dueDate)))
@@ -30,11 +34,11 @@ export const useFlashcardsStore = defineStore('flashcards', () => {
     await load()
   }
   async function remove(id) { await removeOne('flashcards', id); await load(); await useReviewsStore().load() }
-  async function review(id, correct) {
-    const card = await reviewFlashcard(id, correct, clock.today)
+  async function review(id, correct, mode = 'scheduled') {
+    const card = await reviewFlashcard(id, correct, clock.today, mode)
     await load(); await useReviewsStore().load()
     return card
   }
   const topicsFor = (subjectId) => [...new Set(items.value.filter((c) => c.subjectId === subjectId).map((c) => c.topic))]
-  return { items, due, masteredCount, load, save, remove, review, topicsFor }
+  return { items, session, startSession, due, masteredCount, load, save, remove, review, topicsFor }
 })

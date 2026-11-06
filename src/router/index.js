@@ -7,6 +7,7 @@ const routes = [
   { path: '/revisoes/:id', name: 'review', component: () => import('../views/ReviewSessionView.vue'), meta: { title: 'Revisão', parent: 'reviews' } },
   { path: '/caderno', name: 'notebook', component: () => import('../views/NotebookView.vue'), meta: { title: 'Caderno de erros' } },
   { path: '/flashcards', name: 'flashcards', component: () => import('../views/FlashcardsView.vue'), meta: { title: 'Flashcards' } },
+  { path: '/flashcards/livre', name: 'flashcard-free', component: () => import('../views/FlashcardFreeView.vue'), meta: { title: 'Estudar flashcards', parent: 'flashcards' } },
   { path: '/flashcards/estudar', name: 'flashcard-study', component: () => import('../views/FlashcardStudyView.vue'), meta: { title: 'Revisar flashcards', parent: 'flashcards' } },
   { path: '/estatisticas', name: 'stats', component: () => import('../views/StatsView.vue'), meta: { title: 'Estatísticas' } },
   { path: '/ajustes', name: 'settings', component: () => import('../views/SettingsView.vue'), meta: { title: 'Ajustes' } },

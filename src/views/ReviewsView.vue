@@ -35,7 +35,7 @@ const list = computed(() => {
 const dueSubjects = computed(() => [...new Set(cards.due.map((c) => c.subjectId))])
 const dueTopics = computed(() => [...new Set(cards.due.map((c) => c.topic))])
 const overdueCards = computed(() => cards.due.filter((c) => c.dueDate < clock.today).length)
-const doneToday = computed(() => reviews.logs.filter((l) => l.kind === 'flashcard' && l.date === clock.today).length)
+const doneToday = computed(() => reviews.logs.filter((l) => l.kind === 'flashcard' && l.mode !== 'free' && l.date === clock.today).length)
 const cardProgress = computed(() => { const t = doneToday.value + cards.due.length; return t ? Math.round((doneToday.value / t) * 100) : 0 })
 const cardHistory = computed(() => {
   const m = {}
@@ -80,7 +80,7 @@ const emptyText = computed(() => view.value === 'pending'
       <button class="pill !px-3.5 !py-1.5" :class="view === 'done' ? 'bg-ink text-bg' : 'bg-sunken text-mute'" @click="view = 'done'">Histórico</button>
     </div>
     <template v-if="view === 'pending'">
-      <EmptyState v-if="!cards.due.length" title="Nenhum flashcard pendente" :text="cards.items.length ? 'Os cartões voltam conforme o intervalo de cada um.' : 'Crie cartões na aba Flashcards para revisá-los aqui.'" />
+      <EmptyState v-if="!cards.due.length" title="Nenhum flashcard pendente" :text="cards.items.length ? 'Os cartões voltam conforme o intervalo de cada um. Você pode estudar quando quiser.' : 'Crie cartões na aba Flashcards para revisá-los aqui.'"><RouterLink v-if="cards.items.length" to="/flashcards/livre" class="btn-primary">Estudar flashcards</RouterLink></EmptyState>
       <article v-else class="panel p-4" :class="overdueCards ? 'border-warn/60' : ''">
         <div class="flex flex-wrap items-center gap-2">
           <h3 class="font-display text-base font-bold">{{ plural(cards.due.length, 'cartão', 'cartões') }} para revisar</h3>
@@ -91,6 +91,7 @@ const emptyText = computed(() => view.value === 'pending'
         <p class="mt-2 line-clamp-2 text-sm text-mute">{{ dueTopics.join(' · ') }}</p>
         <div class="mt-3 flex items-center gap-3">
           <div class="flex-1"><ProgressBar :value="cardProgress" /><p class="mt-1 text-xs text-mute">{{ doneToday }} revisado(s) hoje</p></div>
+          <RouterLink to="/flashcards/livre" class="btn-line btn-sm">Estudo livre</RouterLink>
           <RouterLink to="/flashcards/estudar" class="btn-primary btn-sm"><Play :size="14" />{{ doneToday ? 'Continuar' : 'Iniciar' }}</RouterLink>
         </div>
       </article>

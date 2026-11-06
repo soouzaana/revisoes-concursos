@@ -8,7 +8,7 @@ import { useReviewsStore } from '../stores/reviews'
 import { useClockStore } from '../stores/clock'
 import { useToast } from '../composables/useToast'
 import { useConfirm } from '../composables/useConfirm'
-import { isDue, masteryOf, MASTERY_LABEL } from '../services/flashcardEngine'
+import { cardStats, isDue, masteryOf, MASTERY_LABEL } from '../services/flashcardEngine'
 import { formatDate, relativeDay } from '../utils/date'
 import { norm, plural } from '../utils/text'
 import PageHeader from '../components/ui/PageHeader.vue'
@@ -45,6 +45,7 @@ const active = computed(() => Object.values(f).some(Boolean))
 const clear = () => Object.assign(f, { q: '', subjectId: '', topic: '', status: '' })
 const tone = (c) => ({ new: 'bg-sunken text-mute', learning: 'bg-accent-soft text-accent', mastered: 'bg-ok-soft text-ok' })[masteryOf(c)]
 const history = (id) => reviews.logs.filter((l) => l.kind === 'flashcard' && l.itemId === id).sort((a, b) => b.at.localeCompare(a.at))
+const rateOf = (v) => (v == null ? '—' : Math.round(v * 100) + '%')
 const nextLabel = (c) => (isDue(c, clock.today) ? 'Pendente' : `Próxima: ${relativeDay(c.dueDate, clock.today)}`)
 
 function edit(c) { detail.value = null; editing.value = c; formOpen.value = true }
@@ -57,7 +58,8 @@ async function del(c) {
 
 <template>
   <PageHeader title="Flashcards" :subtitle="`${plural(cards.items.length, 'cartão', 'cartões')} · ${cards.masteredCount} dominado(s) · ${cards.due.length} pendente(s)`">
-    <RouterLink v-if="cards.due.length" to="/flashcards/estudar" class="btn-soft"><Play :size="16" /> Revisar {{ cards.due.length }}</RouterLink>
+    <RouterLink v-if="cards.items.length" to="/flashcards/livre" class="btn-soft"><Play :size="16" /> Estudar flashcards</RouterLink>
+    <RouterLink v-if="cards.due.length" to="/flashcards/estudar" class="btn-line">Revisão programada ({{ cards.due.length }})</RouterLink>
     <button class="btn-primary" @click="create"><Plus :size="17" /> Novo cartão</button>
   </PageHeader>
 
@@ -105,13 +107,22 @@ async function del(c) {
       <div class="flex flex-wrap items-center gap-2 text-xs"><SubjectDot :id="detail.subjectId" /><span class="font-semibold">{{ detail.topic }}</span><span class="pill" :class="tone(detail)">{{ MASTERY_LABEL[masteryOf(detail)] }} · nível {{ detail.level }}</span></div>
       <div><p class="text-xs font-bold text-mute">Pergunta</p><p class="whitespace-pre-line">{{ detail.front }}</p></div>
       <div class="rounded-xl bg-sunken p-3"><p class="text-xs font-bold text-mute">Resposta</p><p class="whitespace-pre-line">{{ detail.back }}</p></div>
-      <p class="text-xs text-mute">Criado em {{ formatDate(detail.createdAt.slice(0, 10)) }} · {{ nextLabel(detail) }}</p>
+      <p class="text-xs text-mute">Criado em {{ formatDate(detail.createdAt.slice(0, 10)) }}</p>
+      <dl class="grid grid-cols-3 gap-2 text-center text-xs">
+        <div class="rounded-xl bg-sunken p-2"><dt class="text-mute">Revisões</dt><dd class="text-base font-bold">{{ cardStats(detail).reviews }}</dd></div>
+        <div class="rounded-xl bg-sunken p-2"><dt class="text-mute">Acertos</dt><dd class="text-base font-bold text-ok">{{ cardStats(detail).correct }}</dd></div>
+        <div class="rounded-xl bg-sunken p-2"><dt class="text-mute">Erros</dt><dd class="text-base font-bold text-danger">{{ cardStats(detail).wrong }}</dd></div>
+        <div class="rounded-xl bg-sunken p-2"><dt class="text-mute">Taxa de acerto</dt><dd class="text-base font-bold">{{ rateOf(cardStats(detail).accuracy) }}</dd></div>
+        <div class="rounded-xl bg-sunken p-2"><dt class="text-mute">Taxa de erro</dt><dd class="text-base font-bold">{{ rateOf(cardStats(detail).errorRate) }}</dd></div>
+        <div class="rounded-xl bg-sunken p-2"><dt class="text-mute">Nível</dt><dd class="text-base font-bold">{{ detail.level }}</dd></div>
+      </dl>
+      <p class="text-xs text-mute">Última revisão: {{ detail.lastReviewedDate ? formatDate(detail.lastReviewedDate) : 'nunca' }} · Próxima sugerida: {{ formatDate(detail.dueDate) }} ({{ nextLabel(detail) }})</p>
       <div>
         <h3 class="mb-1.5 text-sm font-bold">Histórico de revisões</h3>
         <p v-if="!history(detail.id).length" class="text-sm text-mute">Ainda não revisado.</p>
         <ul v-else class="divide-y divide-line rounded-xl border border-line text-sm">
           <li v-for="h in history(detail.id)" :key="h.id" class="flex items-center justify-between px-3 py-2">
-            <span class="font-semibold" :class="h.correct ? 'text-ok' : 'text-danger'">{{ h.correct ? 'Acertei' : 'Errei' }}</span><span class="text-xs text-mute">{{ formatDate(h.date) }}</span>
+            <span class="font-semibold" :class="h.correct ? 'text-ok' : 'text-danger'">{{ h.correct ? 'Acertei' : 'Errei' }}</span><span class="text-xs text-mute">{{ h.mode === 'free' ? 'Estudo livre · ' : '' }}{{ formatDate(h.date) }}</span>
           </li>
         </ul>
       </div>
