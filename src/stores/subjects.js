@@ -32,8 +32,9 @@ export const useSubjectsStore = defineStore('subjects', () => {
     await load()
   }
   async function usage(id) {
-    const [studies, questions, flashcards] = await Promise.all([countBy('studies', 'subjectId', id), countBy('questions', 'subjectId', id), countBy('flashcards', 'subjectId', id)])
-    return { studies, questions, flashcards, total: studies + questions + flashcards }
+    const [studies, questions, flashcards, mocks] = await Promise.all([countBy('studies', 'subjectId', id), countBy('questions', 'subjectId', id), countBy('flashcards', 'subjectId', id), getAll('mockExams')])
+    const mockExams = mocks.filter((m) => m.subjects.some((x) => x.subjectId === id)).length
+    return { studies, questions, flashcards, mockExams, total: studies + questions + flashcards + mockExams }
   }
   /** Não exclui matéria com registros ligados (evita perder histórico e quebrar revisões). */
   async function remove(id) {

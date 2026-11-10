@@ -30,6 +30,13 @@ O Service Worker só é gerado no build. Rode `npm run build && npm run preview`
 - Cada cartão guarda o próprio histórico (`history`): revisões, acertos, erros, taxas de acerto/erro (calculadas do histórico real), última revisão, próxima sugerida e nível.
 - Estudo livre atualiza o histórico e a repetição espaçada do cartão, mas **nunca** conclui nem altera revisões diárias/semanais do caderno de erros.
 
+## Simulados
+Módulo independente das revisões, integrado ao Dashboard e às Estatísticas (menu **Simulados**).
+- **Cadastro manual** (nome, data, concurso/banca/observações opcionais) com várias matérias por simulado; cada matéria tem total, acertos, erros e em branco (opcional: se omitido, é calculado; se informado, precisa fechar com o total). Matérias ausentes em um simulado não contam como zero.
+- **Histórico** (filtros por nome, período, concurso, banca e simulados específicos; ver detalhes, editar e excluir), **Evolução** geral (gráficos de linha, média por mês, comparação entre simulados, comparação de períodos), **Matérias** (evolução individual com atual/melhor/pior/média/diferença/tendência e ranking em barras) e **Frequência**.
+- **Frequência sugerida** (padrão 15 dias; 7, 10, 15, 20, 30 ou personalizada em *Ajustes*): próxima data = simulado mais recente + frequência. Na data (e depois dela) aparece um lembrete que permanece pendente até você cadastrar outro. Nunca bloqueia nem cria simulados.
+- O banco passou à versão 2 (novo store `mockExams`); a atualização preserva todos os dados existentes. Backups antigos continuam compatíveis.
+
 ## Backup
 Em **Ajustes**: exportar/importar JSON com todos os dados.
 

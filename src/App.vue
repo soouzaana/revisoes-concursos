@@ -1,15 +1,16 @@
 <script setup>
 import { computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
-import { House, PenLine, Repeat, NotebookPen, Layers, ChartColumn, Settings, WifiOff } from 'lucide-vue-next'
+import { House, PenLine, Repeat, NotebookPen, Layers, ChartColumn, Settings, WifiOff, ClipboardCheck } from 'lucide-vue-next'
 import { useAppStore } from './stores/app'
 import { useReviewsStore } from './stores/reviews'
 import { useFlashcardsStore } from './stores/flashcards'
+import { useMocksStore } from './stores/mocks'
 import { useOnline } from './composables/useOnline'
 import ToastHost from './components/ui/ToastHost.vue'
 import ConfirmHost from './components/ui/ConfirmHost.vue'
 
-const app = useAppStore(), reviews = useReviewsStore(), cards = useFlashcardsStore(), route = useRoute()
+const app = useAppStore(), reviews = useReviewsStore(), cards = useFlashcardsStore(), mocks = useMocksStore(), route = useRoute()
 const online = useOnline()
 const logo = import.meta.env.BASE_URL + 'favicon.svg'
 const pending = computed(() => reviews.dailyPending.length + reviews.weeklyPending.length + cards.due.length)
@@ -22,6 +23,7 @@ const main = [
   { to: '/flashcards', label: 'Cards', icon: Layers, name: 'flashcards' }
 ]
 const extra = [
+  { to: '/simulados', label: 'Simulados', icon: ClipboardCheck, name: 'mocks', dot: true },
   { to: '/estatisticas', label: 'Estatísticas', icon: ChartColumn, name: 'stats' },
   { to: '/ajustes', label: 'Ajustes', icon: Settings, name: 'settings' }
 ]
@@ -53,6 +55,7 @@ onUnmounted(() => { document.removeEventListener('visibilitychange', resume); re
           :class="isActive(n.name) ? 'bg-accent-soft text-accent' : 'text-mute'">
           <component :is="n.icon" :size="19" />{{ n.label === 'Cards' ? 'Flashcards' : n.label }}
           <span v-if="n.badge && pending" class="ml-auto rounded-full bg-accent px-2 py-0.5 text-xs text-accent-fg">{{ pending }}</span>
+          <span v-if="n.dot && mocks.reminderActive" class="ml-auto h-2.5 w-2.5 rounded-full bg-warn" aria-label="Simulado sugerido" />
         </RouterLink>
       </nav>
       <p v-if="!online" class="flex items-center gap-2 rounded-xl bg-warn-soft px-3 py-2 text-xs font-semibold text-warn"><WifiOff :size="14" /> Offline — tudo continua funcionando</p>
@@ -63,7 +66,7 @@ onUnmounted(() => { document.removeEventListener('visibilitychange', resume); re
       <span class="flex items-center gap-2 font-display text-base font-extrabold"><img :src="logo" alt="" class="h-7 w-7 rounded-lg" />Revisões</span>
       <span class="flex items-center gap-1">
         <WifiOff v-if="!online" :size="16" class="mr-1 text-warn" aria-label="Offline" />
-        <RouterLink v-for="n in extra" :key="n.to" :to="n.to" class="rounded-xl p-2.5 transition hover:bg-sunken" :class="isActive(n.name) ? 'text-accent' : 'text-mute'" :aria-label="n.label"><component :is="n.icon" :size="20" /></RouterLink>
+        <RouterLink v-for="n in extra" :key="n.to" :to="n.to" class="rounded-xl p-2.5 transition hover:bg-sunken" :class="isActive(n.name) ? 'text-accent' : 'text-mute'" :aria-label="n.label"><span class="relative"><component :is="n.icon" :size="20" /><span v-if="n.dot && mocks.reminderActive" class="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-warn" /></span></RouterLink>
       </span>
     </header>
 

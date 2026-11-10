@@ -2,7 +2,7 @@ import { STORE_NAMES, withTx } from '../database/db'
 import { syncReviews } from './reviewService'
 
 export const BACKUP_APP = 'revisoes-concursos'
-export const BACKUP_VERSION = 1
+export const BACKUP_VERSION = 2 // v2 inclui simulados; backups v1 continuam válidos
 
 export async function buildBackup() {
   const data = await withTx(STORE_NAMES, 'readonly', async (s) => {

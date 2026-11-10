@@ -1,12 +1,14 @@
 <script setup>
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
-import { PenLine, Play, ArrowRight, CalendarCheck, Repeat, Layers } from 'lucide-vue-next'
+import { PenLine, Play, ArrowRight, CalendarCheck, Repeat, Layers, ClipboardCheck, BellRing, ArrowUp, ArrowDown, Plus } from 'lucide-vue-next'
 import { useStudiesStore } from '../stores/studies'
 import { useQuestionsStore } from '../stores/questions'
 import { useFlashcardsStore } from '../stores/flashcards'
 import { useReviewsStore } from '../stores/reviews'
 import { useSubjectsStore } from '../stores/subjects'
+import { useMocksStore } from '../stores/mocks'
+import { fmtDelta, fmtPct } from '../services/mockEngine'
 import { useClockStore } from '../stores/clock'
 import { computeStats } from '../services/statsEngine'
 import { getUpcoming, CYCLE_SIZE } from '../services/reviewEngine'
@@ -14,7 +16,8 @@ import { formatDate } from '../utils/date'
 import { plural } from '../utils/text'
 import CycleDots from '../components/ui/CycleDots.vue'
 
-const studies = useStudiesStore(), questions = useQuestionsStore(), cards = useFlashcardsStore(), reviews = useReviewsStore(), subjects = useSubjectsStore(), clock = useClockStore()
+const studies = useStudiesStore(), questions = useQuestionsStore(), cards = useFlashcardsStore(), reviews = useReviewsStore(), subjects = useSubjectsStore(), clock = useClockStore(), mocks = useMocksStore()
+const mo = computed(() => mocks.overview), sch = computed(() => mocks.schedule)
 
 const stats = computed(() => computeStats({ subjects: subjects.items, studies: studies.items, questions: questions.items, flashcards: cards.items, logs: reviews.logs }, clock.today))
 const up = computed(() => getUpcoming({ studyDates: studies.studyDates, cycles: reviews.cycles, flashcards: cards.items, today: clock.today }))
@@ -45,6 +48,11 @@ const isNew = computed(() => !studies.items.length && !questions.items.length &&
     <h1 class="font-display text-3xl font-extrabold leading-tight sm:text-4xl">{{ isNew ? 'Vamos começar' : totalPending ? `${plural(totalPending, 'revisão pendente', 'revisões pendentes')}` : 'Revisões em dia' }}</h1>
     <p v-if="overdue" class="mt-1 text-sm font-semibold text-warn">{{ plural(overdue, 'revisão atrasada', 'revisões atrasadas') }} — elas continuam esperando por você.</p>
   </header>
+
+  <div v-if="mocks.reminderActive" class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-warn/60 bg-warn-soft p-4 text-warn" role="status" data-testid="mock-reminder">
+    <p class="flex items-center gap-2 text-sm font-semibold"><BellRing :size="18" />{{ sch.status === 'due' ? 'Hora de fazer um novo simulado!' : `Novo simulado sugerido desde ${formatDate(sch.nextDate)} — ${plural(sch.overdueDays, 'dia', 'dias')} de atraso.` }}</p>
+    <RouterLink to="/simulados/novo" class="btn-primary btn-sm">Cadastrar simulado</RouterLink>
+  </div>
 
   <div class="mb-6 grid gap-3 sm:grid-cols-2">
     <RouterLink to="/estudos" class="btn-primary !justify-between !rounded-2xl !px-5 !py-4 !text-base"><span class="flex items-center gap-2.5"><PenLine :size="20" /> Registrar estudo</span><ArrowRight :size="18" /></RouterLink>
@@ -96,6 +104,29 @@ const isNew = computed(() => !studies.items.length && !questions.items.length &&
       </ul>
     </section>
   </div>
+
+  <section class="panel mt-6 p-5" data-testid="mock-dashboard">
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <h2 class="flex items-center gap-2 font-display text-lg font-bold"><ClipboardCheck :size="18" class="text-accent" />Simulados</h2>
+      <RouterLink to="/simulados/novo" class="btn-line btn-sm"><Plus :size="15" /> Novo simulado</RouterLink>
+    </div>
+    <p v-if="!mo.count" class="text-sm text-mute">Nenhum simulado registrado ainda. Cadastre o primeiro para acompanhar sua evolução e receber a sugestão do próximo.</p>
+    <template v-else>
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div><p class="font-display text-2xl font-extrabold">{{ fmtPct(mo.last) }}</p><p class="text-xs text-mute">Último aproveitamento</p></div>
+        <div><p class="font-display text-2xl font-extrabold">{{ fmtPct(mo.avg) }}</p><p class="text-xs text-mute">Média geral</p></div>
+        <div><p class="font-display text-2xl font-extrabold">{{ mo.count }}</p><p class="text-xs text-mute">{{ mo.count === 1 ? 'Simulado realizado' : 'Simulados realizados' }}</p></div>
+        <div><p class="flex items-center gap-1 font-display text-2xl font-extrabold" :class="mo.delta > 0 ? 'text-ok' : mo.delta < 0 ? 'text-danger' : ''"><component :is="mo.delta > 0 ? ArrowUp : ArrowDown" v-if="mo.delta" :size="18" />{{ fmtDelta(mo.delta) }}</p><p class="text-xs text-mute">Vs. simulado anterior</p></div>
+        <div><p class="truncate font-display text-base font-extrabold text-ok">{{ mo.bestSubject ? subjects.nameOf(mo.bestSubject.subjectId) : '—' }}</p><p class="text-xs text-mute">Melhor matéria{{ mo.bestSubject ? ` · ${fmtPct(mo.bestSubject.avg)}` : '' }}</p></div>
+        <div><p class="truncate font-display text-base font-extrabold text-danger">{{ mo.worstSubject ? subjects.nameOf(mo.worstSubject.subjectId) : '—' }}</p><p class="text-xs text-mute">Pior matéria{{ mo.worstSubject ? ` · ${fmtPct(mo.worstSubject.avg)}` : '' }}</p></div>
+      </div>
+      <div class="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-sunken px-4 py-3 text-sm">
+        <span>Próximo simulado sugerido: <b>{{ formatDate(sch.nextDate) }}</b></span>
+        <span class="font-semibold" :class="sch.status === 'upcoming' ? 'text-mute' : 'text-warn'">{{ sch.status === 'upcoming' ? `faltam ${plural(sch.daysLeft, 'dia', 'dias')}` : sch.status === 'due' ? 'é hoje' : `atrasado há ${plural(sch.overdueDays, 'dia', 'dias')}` }}</span>
+      </div>
+      <RouterLink to="/simulados" class="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-accent">Ver evolução <ArrowRight :size="14" /></RouterLink>
+    </template>
+  </section>
 
   <section class="mt-6">
     <h2 class="mb-3 font-display text-lg font-bold">Atividade recente</h2>

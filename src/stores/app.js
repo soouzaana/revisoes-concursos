@@ -6,6 +6,7 @@ import { useQuestionsStore } from './questions'
 import { useFlashcardsStore } from './flashcards'
 import { useReviewsStore } from './reviews'
 import { useSettingsStore } from './settings'
+import { useMocksStore } from './mocks'
 import { useClockStore } from './clock'
 
 export const useAppStore = defineStore('app', () => {
@@ -13,7 +14,7 @@ export const useAppStore = defineStore('app', () => {
   const error = ref('')
 
   async function loadAll() {
-    await Promise.all([useSubjectsStore().load(), useStudiesStore().load(), useQuestionsStore().load(), useFlashcardsStore().load(), useSettingsStore().load()])
+    await Promise.all([useSubjectsStore().load(), useStudiesStore().load(), useQuestionsStore().load(), useFlashcardsStore().load(), useSettingsStore().load(), useMocksStore().load()])
     await useReviewsStore().sync()
   }
   async function init() {

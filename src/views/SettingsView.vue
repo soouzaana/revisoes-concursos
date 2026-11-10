@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { Sun, Moon, Monitor, Download, Upload, Smartphone } from 'lucide-vue-next'
 import { useSettingsStore } from '../stores/settings'
 import { useAppStore } from '../stores/app'
@@ -8,6 +8,7 @@ import { useInstallPrompt } from '../composables/useInstallPrompt'
 import { useToast } from '../composables/useToast'
 import { useConfirm } from '../composables/useConfirm'
 import { formatDate } from '../utils/date'
+import { FREQUENCY_PRESETS, MAX_FREQUENCY, isValidFrequency } from '../services/mockEngine'
 import PageHeader from '../components/ui/PageHeader.vue'
 import SubjectsManager from '../components/forms/SubjectsManager.vue'
 
@@ -35,6 +36,18 @@ async function onFile(e) {
     toast.error(err instanceof SyntaxError ? 'Arquivo inválido: não é um JSON.' : err.message)
   } finally { busy.value = false }
 }
+const custom = ref(false), customDays = ref('')
+const isPreset = computed(() => FREQUENCY_PRESETS.includes(settings.mockFrequencyDays))
+const showCustom = computed(() => custom.value || !isPreset.value)
+async function setFreq(n) {
+  try { await settings.setMockFrequency(n); toast.ok(`Frequência sugerida: ${n} dias`) } catch (e) { toast.error(e.message) }
+}
+function pickPreset(n) { custom.value = false; setFreq(n) }
+async function saveCustom() {
+  const n = Number(customDays.value)
+  if (!isValidFrequency(n)) { toast.error(`Informe um número inteiro de 1 a ${MAX_FREQUENCY} dias.`); return }
+  await setFreq(n)
+}
 async function doInstall() { (await install()) && toast.ok('App instalado') }
 </script>
 
@@ -48,6 +61,20 @@ async function doInstall() { (await install()) && toast.ok('App instalado') }
           <component :is="t.icon" :size="20" />{{ t.label }}
         </button>
       </div>
+    </section>
+
+    <section class="panel p-5">
+      <h2 class="mb-1 font-display text-lg font-bold">Frequência dos simulados</h2>
+      <p class="mb-3 text-sm text-mute">Intervalo sugerido entre simulados. É só um lembrete: você pode cadastrar simulados quando quiser.</p>
+      <div class="flex flex-wrap gap-2">
+        <button v-for="n in FREQUENCY_PRESETS" :key="n" class="pill !px-3.5 !py-1.5 text-sm transition" :class="!showCustom && settings.mockFrequencyDays === n ? 'bg-accent text-accent-fg' : 'bg-sunken text-ink'" :aria-pressed="!showCustom && settings.mockFrequencyDays === n" @click="pickPreset(n)">{{ n }} dias</button>
+        <button class="pill !px-3.5 !py-1.5 text-sm transition" :class="showCustom ? 'bg-accent text-accent-fg' : 'bg-sunken text-ink'" :aria-pressed="showCustom" @click="custom = true; customDays = String(settings.mockFrequencyDays)">Personalizado</button>
+      </div>
+      <form v-if="showCustom" class="mt-3 flex items-end gap-2" @submit.prevent="saveCustom">
+        <div><label class="label" for="freq-custom">Dias entre simulados</label><input id="freq-custom" v-model="customDays" type="number" min="1" :max="MAX_FREQUENCY" step="1" class="field !w-32" :placeholder="String(settings.mockFrequencyDays)" /></div>
+        <button class="btn-line" type="submit">Salvar</button>
+      </form>
+      <p class="mt-3 text-xs text-mute">Atual: <b>{{ settings.mockFrequencyDays }} dias</b></p>
     </section>
 
     <section class="panel p-5">

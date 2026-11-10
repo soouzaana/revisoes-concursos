@@ -9,6 +9,9 @@ const routes = [
   { path: '/flashcards', name: 'flashcards', component: () => import('../views/FlashcardsView.vue'), meta: { title: 'Flashcards' } },
   { path: '/flashcards/livre', name: 'flashcard-free', component: () => import('../views/FlashcardFreeView.vue'), meta: { title: 'Estudar flashcards', parent: 'flashcards' } },
   { path: '/flashcards/estudar', name: 'flashcard-study', component: () => import('../views/FlashcardStudyView.vue'), meta: { title: 'Revisar flashcards', parent: 'flashcards' } },
+  { path: '/simulados', name: 'mocks', component: () => import('../views/SimuladosView.vue'), meta: { title: 'Simulados' } },
+  { path: '/simulados/novo', name: 'mock-new', component: () => import('../views/MockExamFormView.vue'), meta: { title: 'Novo simulado', parent: 'mocks' } },
+  { path: '/simulados/:id/editar', name: 'mock-edit', component: () => import('../views/MockExamFormView.vue'), meta: { title: 'Editar simulado', parent: 'mocks' } },
   { path: '/estatisticas', name: 'stats', component: () => import('../views/StatsView.vue'), meta: { title: 'Estatísticas' } },
   { path: '/ajustes', name: 'settings', component: () => import('../views/SettingsView.vue'), meta: { title: 'Ajustes' } },
   { path: '/:pathMatch(.*)*', redirect: '/' }

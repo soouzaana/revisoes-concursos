@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { getOne, putOne } from '../database/repository'
+import { DEFAULT_FREQUENCY, isValidFrequency } from '../services/mockEngine'
 
 export const useSettingsStore = defineStore('settings', () => {
   const theme = ref('system') // 'system' | 'light' | 'dark'
   const lastBackupAt = ref(null)
+  const mockFrequencyDays = ref(DEFAULT_FREQUENCY) // frequência sugerida de simulados (apenas lembrete)
   let mq = null
 
   function apply() {
@@ -15,6 +17,8 @@ export const useSettingsStore = defineStore('settings', () => {
   async function load() {
     const t = await getOne('settings', 'theme')
     const b = await getOne('settings', 'lastBackupAt')
+    const f = await getOne('settings', 'mockFrequencyDays')
+    mockFrequencyDays.value = isValidFrequency(f?.value) ? f.value : DEFAULT_FREQUENCY
     theme.value = t?.value || 'system'
     lastBackupAt.value = b?.value || null
     apply()
@@ -30,5 +34,11 @@ export const useSettingsStore = defineStore('settings', () => {
     lastBackupAt.value = new Date().toISOString()
     await putOne('settings', { key: 'lastBackupAt', value: lastBackupAt.value })
   }
-  return { theme, lastBackupAt, load, setTheme, markBackup }
+  async function setMockFrequency(days) {
+    const n = Number(days)
+    if (!isValidFrequency(n)) throw new Error('Informe um número inteiro de 1 a 365 dias.')
+    mockFrequencyDays.value = n
+    await putOne('settings', { key: 'mockFrequencyDays', value: n })
+  }
+  return { theme, lastBackupAt, mockFrequencyDays, load, setTheme, markBackup, setMockFrequency }
 })

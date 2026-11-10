@@ -23,7 +23,7 @@ async function del(s) {
   if (!(await confirm({ title: 'Excluir matéria', message: `Excluir "${s.name}"?`, confirmLabel: 'Excluir', danger: true }))) return
   const r = await subjects.remove(s.id)
   if (r.ok) toast.ok('Matéria excluída')
-  else toast.error(`"${s.name}" tem ${r.usage.studies} estudo(s), ${r.usage.questions} questão(ões) e ${r.usage.flashcards} cartão(ões). Remova ou mova esses registros antes de excluir.`)
+  else toast.error(`"${s.name}" tem ${r.usage.studies} estudo(s), ${r.usage.questions} questão(ões), ${r.usage.flashcards} cartão(ões) e ${r.usage.mockExams} simulado(s). Remova ou mova esses registros antes de excluir.`)
 }
 </script>
 <template>

@@ -7,11 +7,14 @@ import { useReviewsStore } from '../stores/reviews'
 import { useSubjectsStore } from '../stores/subjects'
 import { useClockStore } from '../stores/clock'
 import { computeStats } from '../services/statsEngine'
+import { RouterLink } from 'vue-router'
+import { useMocksStore } from '../stores/mocks'
+import { fmtPct } from '../services/mockEngine'
 import PageHeader from '../components/ui/PageHeader.vue'
 import ProgressBar from '../components/ui/ProgressBar.vue'
 import SubjectDot from '../components/ui/SubjectDot.vue'
 
-const studies = useStudiesStore(), questions = useQuestionsStore(), cards = useFlashcardsStore(), reviews = useReviewsStore(), subjects = useSubjectsStore(), clock = useClockStore()
+const studies = useStudiesStore(), questions = useQuestionsStore(), cards = useFlashcardsStore(), reviews = useReviewsStore(), subjects = useSubjectsStore(), clock = useClockStore(), mocks = useMocksStore()
 const s = computed(() => computeStats({ subjects: subjects.items, studies: studies.items, questions: questions.items, flashcards: cards.items, logs: reviews.logs }, clock.today))
 const mode = ref('weekly')
 const series = computed(() => (mode.value === 'weekly' ? s.value.weekly : s.value.monthly))
@@ -57,6 +60,15 @@ const empty = computed(() => !s.value.studies && !s.value.questions && !s.value.
           <tr v-for="p in [...series].reverse()" :key="p.key"><td class="py-2 pr-3 font-medium">{{ mode === 'weekly' ? 'Sem. ' + p.label : p.label }}</td><td class="px-2">{{ p.studiedDays }}</td><td class="px-2">{{ p.studies }}</td><td class="px-2">{{ p.correct }} / {{ p.wrong }}</td><td class="pl-2">{{ p.accuracy === null ? '—' : p.accuracy + '%' }}</td></tr>
         </tbody>
       </table>
+    </div>
+  </section>
+
+  <section v-if="mocks.overview.count" class="panel mb-6 p-5">
+    <div class="mb-3 flex items-center justify-between"><h2 class="font-display text-lg font-bold">Simulados</h2><RouterLink to="/simulados" class="text-sm font-semibold text-accent">Ver evolução</RouterLink></div>
+    <div class="grid grid-cols-3 gap-3 text-center">
+      <div><p class="font-display text-2xl font-extrabold">{{ mocks.overview.count }}</p><p class="text-xs text-mute">Realizados</p></div>
+      <div><p class="font-display text-2xl font-extrabold">{{ fmtPct(mocks.overview.avg) }}</p><p class="text-xs text-mute">Média</p></div>
+      <div><p class="font-display text-2xl font-extrabold">{{ fmtPct(mocks.overview.last) }}</p><p class="text-xs text-mute">Último</p></div>
     </div>
   </section>
 

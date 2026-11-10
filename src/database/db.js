@@ -1,36 +1,22 @@
 import { openDB, deleteDB } from 'idb'
 
 export const DB_NAME = 'revisoes-concursos'
-export const DB_VERSION = 1
-export const STORE_NAMES = ['subjects', 'studies', 'questions', 'flashcards', 'reviews', 'reviewLog', 'cycles', 'settings']
+export const DB_VERSION = 2
+export const STORE_NAMES = ['subjects', 'studies', 'questions', 'flashcards', 'reviews', 'reviewLog', 'cycles', 'settings', 'mockExams']
 
 let dbPromise = null
 
 export function getDB() {
   if (!dbPromise) {
     dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        db.createObjectStore('subjects', { keyPath: 'id' })
-        const studies = db.createObjectStore('studies', { keyPath: 'id' })
-        studies.createIndex('date', 'date')
-        studies.createIndex('subjectId', 'subjectId')
-        const questions = db.createObjectStore('questions', { keyPath: 'id' })
-        questions.createIndex('date', 'date')
-        questions.createIndex('subjectId', 'subjectId')
-        questions.createIndex('status', 'status')
-        const cards = db.createObjectStore('flashcards', { keyPath: 'id' })
-        cards.createIndex('subjectId', 'subjectId')
-        cards.createIndex('dueDate', 'dueDate')
-        const reviews = db.createObjectStore('reviews', { keyPath: 'id' })
-        reviews.createIndex('type', 'type')
-        reviews.createIndex('refDate', 'refDate')
-        const log = db.createObjectStore('reviewLog', { keyPath: 'id' })
-        log.createIndex('itemId', 'itemId')
-        log.createIndex('reviewId', 'reviewId')
-        log.createIndex('kind', 'kind')
-        log.createIndex('date', 'date')
-        db.createObjectStore('cycles', { keyPath: 'id' })
-        db.createObjectStore('settings', { keyPath: 'key' })
+      // Migração incremental: nunca apaga stores existentes (os dados do usuário são preservados).
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) createV1(db)
+        if (oldVersion < 2) {
+          // v2: módulo de simulados
+          const mocks = db.createObjectStore('mockExams', { keyPath: 'id' })
+          mocks.createIndex('date', 'date')
+        }
       },
       blocking() {
         dbPromise?.then((db) => db.close())
@@ -39,6 +25,30 @@ export function getDB() {
     })
   }
   return dbPromise
+}
+
+function createV1(db) {
+  db.createObjectStore('subjects', { keyPath: 'id' })
+  const studies = db.createObjectStore('studies', { keyPath: 'id' })
+  studies.createIndex('date', 'date')
+  studies.createIndex('subjectId', 'subjectId')
+  const questions = db.createObjectStore('questions', { keyPath: 'id' })
+  questions.createIndex('date', 'date')
+  questions.createIndex('subjectId', 'subjectId')
+  questions.createIndex('status', 'status')
+  const cards = db.createObjectStore('flashcards', { keyPath: 'id' })
+  cards.createIndex('subjectId', 'subjectId')
+  cards.createIndex('dueDate', 'dueDate')
+  const reviews = db.createObjectStore('reviews', { keyPath: 'id' })
+  reviews.createIndex('type', 'type')
+  reviews.createIndex('refDate', 'refDate')
+  const log = db.createObjectStore('reviewLog', { keyPath: 'id' })
+  log.createIndex('itemId', 'itemId')
+  log.createIndex('reviewId', 'reviewId')
+  log.createIndex('kind', 'kind')
+  log.createIndex('date', 'date')
+  db.createObjectStore('cycles', { keyPath: 'id' })
+  db.createObjectStore('settings', { keyPath: 'key' })
 }
 
 /** Executa `fn(stores, tx)` em uma transação atômica sobre os stores informados. */
