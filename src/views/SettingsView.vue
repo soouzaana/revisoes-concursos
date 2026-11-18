@@ -11,6 +11,9 @@ import { formatDate } from '../utils/date'
 import { FREQUENCY_PRESETS, MAX_FREQUENCY, isValidFrequency } from '../services/mockEngine'
 import PageHeader from '../components/ui/PageHeader.vue'
 import SubjectsManager from '../components/forms/SubjectsManager.vue'
+import ReviewScopeManager from '../components/forms/ReviewScopeManager.vue'
+import { useReviewsStore } from '../stores/reviews'
+import { WEEKLY_PRESETS, MAX_CYCLE_SIZE, isValidCycleSize } from '../services/reviewEngine'
 
 const settings = useSettingsStore(), app = useAppStore(), toast = useToast(), confirm = useConfirm()
 const { canInstall, standalone, install } = useInstallPrompt()
@@ -35,6 +38,23 @@ async function onFile(e) {
   } catch (err) {
     toast.error(err instanceof SyntaxError ? 'Arquivo inválido: não é um JSON.' : err.message)
   } finally { busy.value = false }
+}
+const reviewsStore = useReviewsStore()
+const wCustom = ref(false), wDays = ref('')
+const wIsPreset = computed(() => WEEKLY_PRESETS.includes(settings.weeklyCycleSize))
+const wShowCustom = computed(() => wCustom.value || !wIsPreset.value)
+async function setWeekly(n) {
+  try {
+    await settings.setWeeklyCycleSize(n)
+    await reviewsStore.sync() // aplica ao ciclo em andamento e libera a semanal se a nova meta já foi atingida
+    toast.ok(`Revisão semanal a cada ${n} dias estudados`)
+  } catch (e) { toast.error(e.message) }
+}
+function pickWeekly(n) { wCustom.value = false; setWeekly(n) }
+async function saveWeeklyCustom() {
+  const n = Number(wDays.value)
+  if (!isValidCycleSize(n)) { toast.error(`Informe um número inteiro de 1 a ${MAX_CYCLE_SIZE} dias estudados.`); return }
+  await setWeekly(n)
 }
 const custom = ref(false), customDays = ref('')
 const isPreset = computed(() => FREQUENCY_PRESETS.includes(settings.mockFrequencyDays))
@@ -61,6 +81,26 @@ async function doInstall() { (await install()) && toast.ok('App instalado') }
           <component :is="t.icon" :size="20" />{{ t.label }}
         </button>
       </div>
+    </section>
+
+    <section class="panel p-5" data-testid="weekly-settings">
+      <h2 class="mb-1 font-display text-lg font-bold">Frequência da revisão semanal</h2>
+      <p class="mb-3 text-sm text-mute">A revisão semanal é liberada a cada N dias estudados (só contam dias com registro; vários registros no mesmo dia valem como um).</p>
+      <div class="flex flex-wrap gap-2">
+        <button v-for="n in WEEKLY_PRESETS" :key="n" class="pill !px-3.5 !py-1.5 text-sm transition" :class="!wShowCustom && settings.weeklyCycleSize === n ? 'bg-accent text-accent-fg' : 'bg-sunken text-ink'" :aria-pressed="!wShowCustom && settings.weeklyCycleSize === n" @click="pickWeekly(n)">A cada {{ n }} dias</button>
+        <button class="pill !px-3.5 !py-1.5 text-sm transition" :class="wShowCustom ? 'bg-accent text-accent-fg' : 'bg-sunken text-ink'" :aria-pressed="wShowCustom" @click="wCustom = true; wDays = String(settings.weeklyCycleSize)">Personalizado</button>
+      </div>
+      <form v-if="wShowCustom" class="mt-3 flex items-end gap-2" @submit.prevent="saveWeeklyCustom">
+        <div><label class="label" for="weekly-custom">Dias estudados por ciclo</label><input id="weekly-custom" v-model="wDays" type="number" min="1" :max="MAX_CYCLE_SIZE" step="1" class="field !w-32" :placeholder="String(settings.weeklyCycleSize)" /></div>
+        <button class="btn-line" type="submit">Salvar</button>
+      </form>
+      <p class="mt-3 text-xs text-mute">Atual: <b>{{ settings.weeklyCycleSize }} dias estudados</b>. Vale para o ciclo em andamento e para os próximos; revisões já liberadas (pendentes ou concluídas) e o histórico não mudam.</p>
+    </section>
+
+    <section class="panel p-5">
+      <h2 class="mb-1 font-display text-lg font-bold">Matérias e assuntos nas revisões</h2>
+      <p class="mb-3 text-sm text-mute">Escolha o que faz parte da sua preparação atual. Desativar não exclui nada e você pode reativar quando quiser.</p>
+      <ReviewScopeManager />
     </section>
 
     <section class="panel p-5">

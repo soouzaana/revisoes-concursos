@@ -6,6 +6,7 @@ import { buildReviewContent, isOverdue, reviewStatus, daysOverdue } from '../ser
 import { useClockStore } from './clock'
 import { useStudiesStore } from './studies'
 import { useQuestionsStore } from './questions'
+import { useActivityStore } from './activity'
 
 export const useReviewsStore = defineStore('reviews', () => {
   const reviews = ref([])
@@ -14,6 +15,7 @@ export const useReviewsStore = defineStore('reviews', () => {
   const clock = useClockStore()
   const studies = useStudiesStore()
   const questions = useQuestionsStore()
+  const activity = useActivityStore()
 
   async function load() {
     const [r, l, c] = await Promise.all([getAll('reviews'), getAll('reviewLog'), getAll('cycles')])
@@ -28,7 +30,7 @@ export const useReviewsStore = defineStore('reviews', () => {
   /** Revisões enriquecidas (conteúdo, status, atraso), da mais antiga para a mais nova. */
   const enriched = computed(() =>
     reviews.value.map((r) => {
-      const content = buildReviewContent(r, { studies: studies.items, questions: questions.items, logs: logs.value })
+      const content = buildReviewContent(r, { studies: studies.items, questions: questions.items, logs: logs.value }, activity.scope)
       return { ...r, content, status: reviewStatus(r, content), overdue: isOverdue(r, clock.today), lateDays: daysOverdue(r, clock.today) }
     })
   )
@@ -37,6 +39,9 @@ export const useReviewsStore = defineStore('reviews', () => {
     .sort((a, b) => (completed ? b.completedAt.localeCompare(a.completedAt) : (a.refDate || a.releasedDate).localeCompare(b.refDate || b.releasedDate)))
   const dailyPending = computed(() => byType('daily', false))
   const weeklyPending = computed(() => byType('weekly', false))
+  // Pendentes que participam das revisões automáticas (têm conteúdo de matéria/assunto ativo)
+  const dailyPendingActive = computed(() => dailyPending.value.filter((r) => !r.content.inactiveOnly))
+  const weeklyPendingActive = computed(() => weeklyPending.value.filter((r) => !r.content.inactiveOnly))
   const dailyDone = computed(() => byType('daily', true))
   const weeklyDone = computed(() => byType('weekly', true))
   const find = (id) => enriched.value.find((r) => r.id === id)
@@ -49,5 +54,5 @@ export const useReviewsStore = defineStore('reviews', () => {
   }
   async function complete(id) { const r = await completeReview(id, clock.today); await load(); return r }
 
-  return { reviews, logs, cycles, load, sync, enriched, dailyPending, weeklyPending, dailyDone, weeklyDone, find, openCycle, start, answer, complete }
+  return { reviews, logs, cycles, load, sync, enriched, dailyPending, weeklyPending, dailyPendingActive, weeklyPendingActive, dailyDone, weeklyDone, find, openCycle, start, answer, complete }
 })

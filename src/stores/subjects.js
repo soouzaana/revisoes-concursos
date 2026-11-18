@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { countBy, getAll, putOne, removeOne } from '../database/repository'
 import { uid } from '../utils/id'
 import { validateSubjectName } from '../utils/validators'
+import { isSubjectActive } from '../services/activityScope'
 
 export const SUBJECT_COLORS = ['#2b4acb', '#0e8f7e', '#c2410c', '#9333ea', '#be123c', '#b45309', '#0369a1', '#4d7c0f', '#c026d3', '#475569']
 export const SUGGESTED_SUBJECTS = ['Língua Portuguesa', 'Matemática', 'Raciocínio Lógico', 'Informática', 'Direito Constitucional', 'Direito Administrativo', 'Direito Penal', 'Atualidades']
@@ -11,6 +12,9 @@ export const useSubjectsStore = defineStore('subjects', () => {
   const items = ref([])
   const byId = computed(() => Object.fromEntries(items.value.map((s) => [s.id, s])))
   const get = (id) => byId.value[id]
+  /** Matérias sem o campo `active` (dados antigos) contam como ativas. */
+  const activeItems = computed(() => items.value.filter(isSubjectActive))
+  const inactiveItems = computed(() => items.value.filter((s) => !isSubjectActive(s)))
   const nameOf = (id) => byId.value[id]?.name ?? 'Matéria removida'
   const colorOf = (id) => byId.value[id]?.color ?? '#64748b'
 
@@ -20,7 +24,7 @@ export const useSubjectsStore = defineStore('subjects', () => {
   async function add(name, color) {
     const err = validateSubjectName(name, items.value)
     if (err) throw new Error(err)
-    const s = { id: uid(), name: name.trim(), color: color || SUBJECT_COLORS[items.value.length % SUBJECT_COLORS.length], createdAt: new Date().toISOString() }
+    const s = { id: uid(), name: name.trim(), color: color || SUBJECT_COLORS[items.value.length % SUBJECT_COLORS.length], active: true, createdAt: new Date().toISOString() }
     await putOne('subjects', s)
     await load()
     return s
@@ -29,6 +33,13 @@ export const useSubjectsStore = defineStore('subjects', () => {
     const err = validateSubjectName(name, items.value, id)
     if (err) throw new Error(err)
     await putOne('subjects', { ...byId.value[id], name: name.trim(), color })
+    await load()
+  }
+  /** Ativa/desativa a matéria nas revisões automáticas. Nunca apaga nada: só altera a flag. */
+  async function setActive(id, active) {
+    const prev = byId.value[id]
+    if (!prev) return
+    await putOne('subjects', { ...prev, active: !!active })
     await load()
   }
   async function usage(id) {
@@ -44,5 +55,5 @@ export const useSubjectsStore = defineStore('subjects', () => {
     await load()
     return { ok: true }
   }
-  return { items, byId, get, nameOf, colorOf, load, add, update, remove, usage }
+  return { items, activeItems, inactiveItems, setActive, byId, get, nameOf, colorOf, load, add, update, remove, usage }
 })

@@ -71,6 +71,9 @@ const suggestion = computed(() => (picked.value && q.value?.options?.length ? pi
       </div>
     </header>
 
+    <p v-if="!done && c.inactiveOnly" class="mb-4 rounded-xl bg-warn-soft px-4 py-3 text-sm text-warn">Esta revisão só tem conteúdo de matérias/assuntos inativos. Você está vendo tudo porque a abriu manualmente.</p>
+    <p v-else-if="!done && c.hiddenCount" class="mb-4 rounded-xl bg-sunken px-4 py-3 text-xs text-mute">{{ plural(c.hiddenCount, 'item de matéria/assunto inativo fica', 'itens de matérias/assuntos inativos ficam') }} fora desta revisão.</p>
+
     <section class="panel mb-5 p-4">
       <h2 class="mb-3 text-sm font-bold">{{ plural(c.topics.length, 'assunto estudado', 'assuntos estudados') }}</h2>
       <ul class="space-y-2">

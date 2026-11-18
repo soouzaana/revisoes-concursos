@@ -26,6 +26,8 @@ const range = computed(() => (r.value.type === 'weekly' ? `${formatDayMonth(c.va
       <span v-else class="pill bg-sunken text-mute">Pendente</span>
     </div>
     <p v-if="range" class="mt-0.5 text-xs text-mute">{{ range }}</p>
+    <p v-if="!done && c.inactiveOnly" class="mt-1 text-xs font-semibold text-mute">Só tem conteúdo de matéria/assunto inativo — fora das revisões automáticas.</p>
+    <p v-else-if="!done && c.hiddenCount" class="mt-1 text-xs text-mute">{{ plural(c.hiddenCount, 'item de matéria/assunto inativo fica', 'itens de matérias/assuntos inativos ficam') }} fora desta revisão.</p>
     <div class="mt-3 flex flex-wrap gap-1.5"><SubjectDot v-for="id in c.subjectIds" :key="id" :id="id" /></div>
     <p v-if="c.topics.length" class="mt-2 line-clamp-2 text-sm text-mute">{{ c.topics.map((t) => t.topic).join(' · ') }}</p>
     <div class="mt-3 flex items-center gap-3">

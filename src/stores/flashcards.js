@@ -7,10 +7,12 @@ import { isDue, isMastered, newCardFields } from '../services/flashcardEngine'
 import { backfillCardHistory, reviewFlashcard } from '../services/flashcardService'
 import { useClockStore } from './clock'
 import { useReviewsStore } from './reviews'
+import { useActivityStore } from './activity'
 
 export const useFlashcardsStore = defineStore('flashcards', () => {
   const items = ref([])
   const clock = useClockStore()
+  const activity = useActivityStore()
   /** Sessão em andamento (memória): { mode: 'scheduled' | 'free', ids: [] } */
   const session = ref({ mode: 'free', ids: [] })
   const startSession = (ids, mode = 'free') => { session.value = { mode, ids: [...ids] } }
@@ -18,7 +20,10 @@ export const useFlashcardsStore = defineStore('flashcards', () => {
     await backfillCardHistory()
     items.value = (await getAll('flashcards')).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   }
-  const due = computed(() => items.value.filter((c) => isDue(c, clock.today)).sort((a, b) => a.dueDate.localeCompare(b.dueDate)))
+  // `dueAll`: todos os vencidos. `due`: só os de matérias/assuntos ATIVOS — é o que a Central de revisões acumula.
+  // O estudo livre usa `items` e nunca é afetado pela desativação.
+  const dueAll = computed(() => items.value.filter((c) => isDue(c, clock.today)).sort((a, b) => a.dueDate.localeCompare(b.dueDate)))
+  const due = computed(() => dueAll.value.filter((c) => activity.scope.isActive(c.subjectId, c.topic)))
   const masteredCount = computed(() => items.value.filter(isMastered).length)
 
   async function save(form) {
@@ -40,5 +45,5 @@ export const useFlashcardsStore = defineStore('flashcards', () => {
     return card
   }
   const topicsFor = (subjectId) => [...new Set(items.value.filter((c) => c.subjectId === subjectId).map((c) => c.topic))]
-  return { items, session, startSession, due, masteredCount, load, save, remove, review, topicsFor }
+  return { items, session, startSession, due, dueAll, masteredCount, load, save, remove, review, topicsFor }
 })

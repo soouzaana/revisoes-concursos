@@ -13,7 +13,7 @@ import ConfirmHost from './components/ui/ConfirmHost.vue'
 const app = useAppStore(), reviews = useReviewsStore(), cards = useFlashcardsStore(), mocks = useMocksStore(), route = useRoute()
 const online = useOnline()
 const logo = import.meta.env.BASE_URL + 'favicon.svg'
-const pending = computed(() => reviews.dailyPending.length + reviews.weeklyPending.length + cards.due.length)
+const pending = computed(() => reviews.dailyPendingActive.length + reviews.weeklyPendingActive.length + cards.due.length)
 
 const main = [
   { to: '/', label: 'Início', icon: House, name: 'home' },

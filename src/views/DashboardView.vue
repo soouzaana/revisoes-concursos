@@ -11,24 +11,28 @@ import { useMocksStore } from '../stores/mocks'
 import { fmtDelta, fmtPct } from '../services/mockEngine'
 import { useClockStore } from '../stores/clock'
 import { computeStats } from '../services/statsEngine'
-import { getUpcoming, CYCLE_SIZE } from '../services/reviewEngine'
+import { getUpcoming } from '../services/reviewEngine'
+import { useSettingsStore } from '../stores/settings'
 import { formatDate } from '../utils/date'
 import { plural } from '../utils/text'
 import CycleDots from '../components/ui/CycleDots.vue'
 
-const studies = useStudiesStore(), questions = useQuestionsStore(), cards = useFlashcardsStore(), reviews = useReviewsStore(), subjects = useSubjectsStore(), clock = useClockStore(), mocks = useMocksStore()
+const studies = useStudiesStore(), questions = useQuestionsStore(), cards = useFlashcardsStore(), reviews = useReviewsStore(), subjects = useSubjectsStore(), clock = useClockStore(), mocks = useMocksStore(), settings = useSettingsStore()
+const cycleSize = computed(() => settings.weeklyCycleSize)
 const mo = computed(() => mocks.overview), sch = computed(() => mocks.schedule)
 
 const stats = computed(() => computeStats({ subjects: subjects.items, studies: studies.items, questions: questions.items, flashcards: cards.items, logs: reviews.logs }, clock.today))
-const up = computed(() => getUpcoming({ studyDates: studies.studyDates, cycles: reviews.cycles, flashcards: cards.items, today: clock.today }))
-const totalPending = computed(() => reviews.dailyPending.length + reviews.weeklyPending.length + cards.due.length)
+const up = computed(() => getUpcoming({ studyDates: studies.studyDates, cycles: reviews.cycles, flashcards: cards.items, today: clock.today, size: cycleSize.value }))
+// Só conta o que está nas matérias/assuntos ativos (os demais ficam preservados, fora das revisões automáticas)
+const totalPending = computed(() => reviews.dailyPendingActive.length + reviews.weeklyPendingActive.length + cards.due.length)
+const remaining = computed(() => Math.max(0, cycleSize.value - up.value.cycle.studied))
 const startTo = computed(() => {
-  const r = reviews.dailyPending[0] || reviews.weeklyPending[0]
+  const r = reviews.dailyPendingActive[0] || reviews.weeklyPendingActive[0]
   if (r) return `/revisoes/${encodeURIComponent(r.id)}`
   return cards.due.length ? '/flashcards/estudar' : '/revisoes'
 })
 const dateLabel = computed(() => new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()))
-const overdue = computed(() => [...reviews.dailyPending, ...reviews.weeklyPending].filter((r) => r.overdue).length)
+const overdue = computed(() => [...reviews.dailyPendingActive, ...reviews.weeklyPendingActive].filter((r) => r.overdue).length)
 
 const activity = computed(() => {
   const ev = []
@@ -60,8 +64,8 @@ const isNew = computed(() => !studies.items.length && !questions.items.length &&
   </div>
 
   <section class="mb-6 grid grid-cols-3 gap-3">
-    <RouterLink to="/revisoes" class="panel p-4 transition hover:border-accent"><CalendarCheck :size="18" class="mb-2 text-accent" /><p class="font-display text-2xl font-extrabold">{{ reviews.dailyPending.length }}</p><p class="text-xs text-mute">Revisões diárias</p></RouterLink>
-    <RouterLink to="/revisoes" class="panel p-4 transition hover:border-accent"><Repeat :size="18" class="mb-2 text-accent" /><p class="font-display text-2xl font-extrabold">{{ reviews.weeklyPending.length }}</p><p class="text-xs text-mute">Revisões semanais</p></RouterLink>
+    <RouterLink to="/revisoes" class="panel p-4 transition hover:border-accent"><CalendarCheck :size="18" class="mb-2 text-accent" /><p class="font-display text-2xl font-extrabold">{{ reviews.dailyPendingActive.length }}</p><p class="text-xs text-mute">Revisões diárias</p></RouterLink>
+    <RouterLink to="/revisoes" class="panel p-4 transition hover:border-accent"><Repeat :size="18" class="mb-2 text-accent" /><p class="font-display text-2xl font-extrabold">{{ reviews.weeklyPendingActive.length }}</p><p class="text-xs text-mute">Revisões semanais</p></RouterLink>
     <RouterLink to="/revisoes" class="panel p-4 transition hover:border-accent"><Layers :size="18" class="mb-2 text-accent" /><p class="font-display text-2xl font-extrabold">{{ cards.due.length }}</p><p class="text-xs text-mute">Flashcards a revisar</p></RouterLink>
   </section>
 
@@ -69,10 +73,16 @@ const isNew = computed(() => !studies.items.length && !questions.items.length &&
     <div class="flex flex-wrap items-center justify-between gap-4">
       <div>
         <h2 class="font-display text-lg font-bold">Ciclo {{ up.cycle.number }}</h2>
-        <p class="text-sm text-mute">{{ up.cycle.studied }} de {{ CYCLE_SIZE }} dias estudados · a revisão semanal é liberada no {{ CYCLE_SIZE }}º</p>
+        <p class="text-sm text-mute" data-testid="cycle-progress">{{ up.cycle.studied }} de {{ cycleSize }} dias estudados · {{ remaining ? `faltam ${plural(remaining, 'dia estudado', 'dias estudados')} para a próxima revisão semanal` : 'revisão semanal liberada' }}</p>
       </div>
-      <CycleDots :studied="up.cycle.studied" :size="CYCLE_SIZE" />
+      <CycleDots :studied="up.cycle.studied" :size="cycleSize" />
     </div>
+  </section>
+
+  <section class="panel mb-6 flex flex-wrap items-center justify-between gap-3 p-4" data-testid="scope-summary">
+    <p class="text-sm"><b class="text-xl font-extrabold">{{ subjects.activeItems.length }}</b> <span class="text-mute">{{ subjects.activeItems.length === 1 ? 'matéria ativa' : 'matérias ativas' }}</span>
+      <span class="mx-2 text-line">|</span><b class="text-xl font-extrabold">{{ subjects.inactiveItems.length }}</b> <span class="text-mute">{{ subjects.inactiveItems.length === 1 ? 'inativa' : 'inativas' }}</span></p>
+    <RouterLink to="/ajustes" class="text-sm font-semibold text-accent">Gerenciar <ArrowRight :size="14" class="inline" /></RouterLink>
   </section>
 
   <section class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -98,7 +108,7 @@ const isNew = computed(() => !studies.items.length && !questions.items.length &&
       <h2 class="mb-3 font-display text-lg font-bold">Próximas revisões</h2>
       <ul class="space-y-2.5 text-sm">
         <li v-if="up.dailyTomorrow">Amanhã: revisão diária de hoje ({{ plural(studies.byDate[clock.today].length, 'assunto', 'assuntos') }})</li>
-        <li v-if="up.cycle.studied">Semanal do ciclo {{ up.cycle.number }}: faltam {{ plural(CYCLE_SIZE - up.cycle.studied, 'dia estudado', 'dias estudados') }}</li>
+        <li v-if="up.cycle.studied">Semanal do ciclo {{ up.cycle.number }}: faltam {{ plural(remaining, 'dia estudado', 'dias estudados') }}</li>
         <li v-if="up.flashcardsTomorrow">Amanhã: {{ plural(up.flashcardsTomorrow, 'flashcard', 'flashcards') }}</li>
         <li v-if="!up.dailyTomorrow && !up.cycle.studied && !up.flashcardsTomorrow" class="text-mute">Registre um estudo hoje para agendar a revisão de amanhã.</li>
       </ul>

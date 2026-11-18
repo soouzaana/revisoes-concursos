@@ -1,7 +1,18 @@
 /** Orquestra o motor de revisões com o IndexedDB. Toda escrita relevante é transacional. */
 import { withTx } from '../database/db'
 import { todayStr } from '../utils/date'
-import { buildReviewContent, getStudyDates, planReviewChanges, reconcileCycles } from './reviewEngine'
+import { buildReviewContent, DEFAULT_CYCLE_SIZE, getStudyDates, isValidCycleSize, planReviewChanges, reconcileCycles } from './reviewEngine'
+import { makeScope } from './activityScope'
+
+/** Lê configurações que afetam as revisões (dentro de uma transação já aberta que inclua 'settings'). */
+async function readCycleSize(s) {
+  const row = await s.settings.get('weeklyCycleSize')
+  return isValidCycleSize(row?.value) ? row.value : DEFAULT_CYCLE_SIZE
+}
+async function readScope(s) {
+  const [subjects, row] = await Promise.all([s.subjects.getAll(), s.settings.get('inactiveTopics')])
+  return makeScope(subjects, Array.isArray(row?.value) ? row.value : [])
+}
 
 let chain = Promise.resolve()
 
@@ -13,12 +24,13 @@ export function syncReviews(today = todayStr()) {
 }
 
 async function doSync(today) {
-  return withTx(['studies', 'cycles', 'reviews', 'reviewLog'], 'readwrite', async (s) => {
+  return withTx(['studies', 'cycles', 'reviews', 'reviewLog', 'settings'], 'readwrite', async (s) => {
     const [studies, cycles, reviews] = await Promise.all([s.studies.getAll(), s.cycles.getAll(), s.reviews.getAll()])
     const nowIso = new Date().toISOString()
     const studyDates = getStudyDates(studies)
 
-    const nextCycles = reconcileCycles(cycles, studyDates, nowIso, today)
+    const size = await readCycleSize(s)
+    const nextCycles = reconcileCycles(cycles, studyDates, nowIso, today, size)
     const prev = new Map(cycles.map((c) => [c.id, JSON.stringify(c)]))
     const nextIds = new Set(nextCycles.map((c) => c.id))
     for (const c of cycles) if (!nextIds.has(c.id)) await s.cycles.delete(c.id)
@@ -61,12 +73,12 @@ export async function recordQuestionAnswer({ reviewId, question, correct, today 
 
 /** Conclui a revisão (idempotente). Exige todas as questões respondidas e congela um snapshot. */
 export async function completeReview(reviewId, today = todayStr()) {
-  return withTx(['reviews', 'reviewLog', 'studies', 'questions'], 'readwrite', async (s) => {
+  return withTx(['reviews', 'reviewLog', 'studies', 'questions', 'subjects', 'settings'], 'readwrite', async (s) => {
     const r = await s.reviews.get(reviewId)
     if (!r) throw new Error('Revisão não encontrada.')
     if (r.completedAt) return r
     const [studies, questions, logs] = await Promise.all([s.studies.getAll(), s.questions.getAll(), s.reviewLog.index('reviewId').getAll(reviewId)])
-    const content = buildReviewContent(r, { studies, questions, logs })
+    const content = buildReviewContent(r, { studies, questions, logs }, await readScope(s))
     if (!content.allAnswered) throw new Error('Responda todas as questões antes de concluir.')
     r.completedAt = new Date().toISOString()
     r.completedDate = today
