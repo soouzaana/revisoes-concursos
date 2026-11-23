@@ -10,7 +10,7 @@ import SubjectSelect from './SubjectSelect.vue'
 const props = defineProps({ open: Boolean, study: Object })
 const emit = defineEmits(['close'])
 const studies = useStudiesStore(), clock = useClockStore(), toast = useToast()
-const form = reactive({ date: '', subjectId: '', topic: '', notes: '' })
+const form = reactive({ date: '', subjectId: '', topic: '', notes: '', minutes: '' })
 const errors = ref({})
 watch(() => props.open, (o) => { if (o && props.study) { Object.assign(form, props.study); errors.value = {} } })
 
@@ -34,6 +34,7 @@ async function submit() {
         <input id="se-topic" v-model="form.topic" class="field" :class="{ 'field-error': errors.topic }" />
         <p v-if="errors.topic" class="hint-error">{{ errors.topic }}</p>
       </div>
+      <div><label class="label" for="se-minutes">Tempo estudado (minutos)</label><input id="se-minutes" v-model="form.minutes" type="number" min="0" max="1440" class="field" /></div>
       <div><label class="label" for="se-notes">Observações</label><textarea id="se-notes" v-model="form.notes" rows="3" class="field" /></div>
     </form>
     <template #footer>

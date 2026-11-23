@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { getOne, putOne } from '../database/repository'
 import { DEFAULT_FREQUENCY, isValidFrequency } from '../services/mockEngine'
 import { DEFAULT_CYCLE_SIZE, MAX_CYCLE_SIZE, isValidCycleSize } from '../services/reviewEngine'
+import { DEFAULT_STREAK_CATEGORIES, CATEGORY_KEYS } from '../services/activityEngine'
 
 export const useSettingsStore = defineStore('settings', () => {
   const theme = ref('system') // 'system' | 'light' | 'dark'
@@ -11,6 +12,9 @@ export const useSettingsStore = defineStore('settings', () => {
   const weeklyCycleSize = ref(DEFAULT_CYCLE_SIZE) // dias estudados por ciclo da revisão semanal
   const inactiveTopics = ref([])                 // chaves `matéria|assunto` desativadas nas revisões automáticas
   const reviewsOnlyActive = ref(true)            // Central de revisões: mostrar só matérias ativas
+  const streakCategories = ref([...DEFAULT_STREAK_CATEGORIES]) // categorias que contam para a ofensiva/heatmap
+  const dashboardHidden = ref([])                // indicadores ocultos na Visão geral
+  const currentContestId = ref('')
   let mq = null
 
   function apply() {
@@ -29,6 +33,12 @@ export const useSettingsStore = defineStore('settings', () => {
     inactiveTopics.value = Array.isArray(it?.value) ? it.value : []
     const oa = await getOne('settings', 'reviewsOnlyActive')
     reviewsOnlyActive.value = oa ? !!oa.value : true
+    const sc = await getOne('settings', 'streakCategories')
+    streakCategories.value = Array.isArray(sc?.value) ? sc.value.filter((k) => CATEGORY_KEYS.includes(k)) : [...DEFAULT_STREAK_CATEGORIES]
+    const dh = await getOne('settings', 'dashboardHidden')
+    dashboardHidden.value = Array.isArray(dh?.value) ? dh.value : []
+    const cc = await getOne('settings', 'currentContestId')
+    currentContestId.value = cc?.value || ''
     theme.value = t?.value || 'system'
     lastBackupAt.value = b?.value || null
     apply()
@@ -65,5 +75,19 @@ export const useSettingsStore = defineStore('settings', () => {
     reviewsOnlyActive.value = !!v
     await putOne('settings', { key: 'reviewsOnlyActive', value: !!v })
   }
-  return { theme, lastBackupAt, mockFrequencyDays, weeklyCycleSize, inactiveTopics, reviewsOnlyActive, setWeeklyCycleSize, setInactiveTopics, setReviewsOnlyActive, load, setTheme, markBackup, setMockFrequency }
+  async function setStreakCategories(keys) {
+    const plain = [...new Set(keys)].filter((k) => CATEGORY_KEYS.includes(k))
+    streakCategories.value = plain
+    await putOne('settings', { key: 'streakCategories', value: [...plain] })
+  }
+  async function setDashboardHidden(keys) {
+    const plain = [...new Set(keys)]
+    dashboardHidden.value = plain
+    await putOne('settings', { key: 'dashboardHidden', value: [...plain] })
+  }
+  async function setCurrentContest(id) {
+    currentContestId.value = id || ''
+    await putOne('settings', { key: 'currentContestId', value: id || '' })
+  }
+  return { streakCategories, dashboardHidden, currentContestId, setStreakCategories, setDashboardHidden, setCurrentContest, theme, lastBackupAt, mockFrequencyDays, weeklyCycleSize, inactiveTopics, reviewsOnlyActive, setWeeklyCycleSize, setInactiveTopics, setReviewsOnlyActive, load, setTheme, markBackup, setMockFrequency }
 })

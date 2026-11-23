@@ -5,6 +5,7 @@ import { useStudiesStore } from '../stores/studies'
 import { useQuestionsStore } from '../stores/questions'
 import { useSubjectsStore } from '../stores/subjects'
 import { useClockStore } from '../stores/clock'
+import { useConcursoStore } from '../stores/concurso'
 import { useToast } from '../composables/useToast'
 import { useConfirm } from '../composables/useConfirm'
 import { formatDateShort, relativeDay } from '../utils/date'
@@ -17,10 +18,10 @@ import QuestionFields from '../components/forms/QuestionFields.vue'
 import StudyEditModal from '../components/forms/StudyEditModal.vue'
 import SubjectsManager from '../components/forms/SubjectsManager.vue'
 
-const studies = useStudiesStore(), questions = useQuestionsStore(), subjects = useSubjectsStore(), clock = useClockStore()
+const studies = useStudiesStore(), questions = useQuestionsStore(), subjects = useSubjectsStore(), clock = useClockStore(), concurso = useConcursoStore()
 const toast = useToast(), confirm = useConfirm()
 
-const form = reactive({ date: clock.today, subjectId: '', topic: '', notes: '' })
+const form = reactive({ date: clock.today, subjectId: '', topic: '', notes: '', minutes: '' })
 const errors = ref({})
 const qErrors = ref({})
 const showQ = ref(false)
@@ -31,7 +32,7 @@ const saving = ref(false)
 const editing = ref(null)
 const shown = ref(10)
 
-const topicOptions = computed(() => (form.subjectId ? studies.topicsFor(form.subjectId) : []))
+const topicOptions = computed(() => (form.subjectId ? [...new Set([...studies.topicsFor(form.subjectId), ...concurso.syllabus.filter((t) => t.subjectId === form.subjectId).map((t) => t.name)])] : []))
 const draftTouched = () => !!(draft.statement.trim() || draft.correctAnswer.trim() || draft.explanation.trim() || draft.options.length)
 const resetDraft = () => { Object.assign(draft, blankQ()); qErrors.value = {} }
 
@@ -51,7 +52,7 @@ async function submit() {
     const n = drafts.value.length
     await studies.add(form, drafts.value)
     toast.ok(n ? `Estudo registrado com ${plural(n, 'questão', 'questões')}` : 'Estudo registrado')
-    form.topic = ''; form.notes = ''; drafts.value = []; resetDraft(); showQ.value = false
+    form.topic = ''; form.notes = ''; form.minutes = ''; drafts.value = []; resetDraft(); showQ.value = false
     await nextTick(); document.getElementById('st-topic')?.focus()
   } catch (e) { e.errors ? (errors.value = e.errors) : toast.error(e.message) } finally { saving.value = false }
 }
@@ -88,6 +89,11 @@ const days = computed(() => Object.keys(studies.byDate).sort().reverse())
       <input id="st-topic" v-model="form.topic" list="st-topics" class="field" :class="{ 'field-error': errors.topic }" placeholder="Ex.: Modelo OSI" autocomplete="off" />
       <datalist id="st-topics"><option v-for="t in topicOptions" :key="t" :value="t" /></datalist>
       <p v-if="errors.topic" class="hint-error">{{ errors.topic }}</p>
+    </div>
+    <div class="sm:w-1/2">
+      <label class="label" for="st-minutes">Tempo estudado em minutos <span class="font-normal text-mute">(opcional)</span></label>
+      <input id="st-minutes" v-model="form.minutes" type="number" min="0" max="1440" inputmode="numeric" class="field" :class="{ 'field-error': errors.minutes }" placeholder="Ex.: 90" />
+      <p v-if="errors.minutes" class="hint-error">{{ errors.minutes }}</p>
     </div>
     <div>
       <label class="label" for="st-notes">Observações <span class="font-normal text-mute">(opcional)</span></label>

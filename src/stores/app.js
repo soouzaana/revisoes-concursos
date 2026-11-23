@@ -8,13 +8,19 @@ import { useReviewsStore } from './reviews'
 import { useSettingsStore } from './settings'
 import { useMocksStore } from './mocks'
 import { useClockStore } from './clock'
+import { useHabitsStore } from './habits'
+import { useTasksStore } from './tasks'
+import { useNotesStore } from './notes'
+import { useEventsStore } from './events'
+import { useConcursoStore } from './concurso'
 
 export const useAppStore = defineStore('app', () => {
   const ready = ref(false)
   const error = ref('')
 
   async function loadAll() {
-    await Promise.all([useSubjectsStore().load(), useStudiesStore().load(), useQuestionsStore().load(), useFlashcardsStore().load(), useSettingsStore().load(), useMocksStore().load()])
+    await Promise.all([useSubjectsStore().load(), useStudiesStore().load(), useQuestionsStore().load(), useFlashcardsStore().load(), useSettingsStore().load(), useMocksStore().load(), useHabitsStore().load(), useTasksStore().load(), useNotesStore().load(), useEventsStore().load()])
+    await useConcursoStore().load() // depende de settings (concurso atual)
     await useReviewsStore().sync()
   }
   async function init() {

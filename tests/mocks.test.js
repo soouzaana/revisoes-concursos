@@ -119,7 +119,7 @@ describe('banco: migração v1 → v2 e backup', () => {
       r.onerror = () => rej(r.error)
     })
     const db = await getDB()
-    expect(db.version).toBe(2)
+    expect(db.version).toBe(3)
     expect([...db.objectStoreNames]).toContain('mockExams')
     expect((await getAll('subjects')).map((s) => s.name)).toEqual(['Informática'])
     expect(await getAll('mockExams')).toEqual([])

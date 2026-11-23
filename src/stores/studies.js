@@ -8,6 +8,9 @@ import { hasErrors, validateStudy } from '../utils/validators'
 import { useReviewsStore } from './reviews'
 import { useQuestionsStore } from './questions'
 
+/** Tempo estudado em minutos (opcional). */
+const cleanMinutes = (v) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n > 0 && n <= 1440 ? n : 0 }
+
 export const useStudiesStore = defineStore('studies', () => {
   const items = ref([])
   const studyDates = computed(() => getStudyDates(items.value))
@@ -26,7 +29,7 @@ export const useStudiesStore = defineStore('studies', () => {
     const errors = validateStudy(form)
     if (hasErrors(errors)) throw Object.assign(new Error('Formulário inválido'), { errors })
     const now = new Date().toISOString()
-    const study = { id: uid(), date: form.date, subjectId: form.subjectId, topic: form.topic.trim(), notes: (form.notes || '').trim(), createdAt: now }
+    const study = { id: uid(), date: form.date, subjectId: form.subjectId, topic: form.topic.trim(), notes: (form.notes || '').trim(), minutes: cleanMinutes(form.minutes), createdAt: now }
     await withTx(['studies', 'questions'], 'readwrite', async (s) => {
       await s.studies.put(study)
       for (const d of questionDrafts) {
@@ -46,7 +49,7 @@ export const useStudiesStore = defineStore('studies', () => {
     const errors = validateStudy(form)
     if (hasErrors(errors)) throw Object.assign(new Error('Formulário inválido'), { errors })
     const prev = await getOne('studies', id)
-    await putOne('studies', { ...prev, date: form.date, subjectId: form.subjectId, topic: form.topic.trim(), notes: (form.notes || '').trim() })
+    await putOne('studies', { ...prev, date: form.date, subjectId: form.subjectId, topic: form.topic.trim(), notes: (form.notes || '').trim(), minutes: cleanMinutes(form.minutes) })
     await load()
     await useReviewsStore().sync()
   }

@@ -1,8 +1,8 @@
 import { openDB, deleteDB } from 'idb'
 
 export const DB_NAME = 'revisoes-concursos'
-export const DB_VERSION = 2
-export const STORE_NAMES = ['subjects', 'studies', 'questions', 'flashcards', 'reviews', 'reviewLog', 'cycles', 'settings', 'mockExams']
+export const DB_VERSION = 3
+export const STORE_NAMES = ['subjects', 'studies', 'questions', 'flashcards', 'reviews', 'reviewLog', 'cycles', 'settings', 'mockExams', 'habits', 'habitLogs', 'tasks', 'notes', 'events', 'contests', 'syllabus', 'studyCycle', 'cycleSessions']
 
 let dbPromise = null
 
@@ -16,6 +16,16 @@ export function getDB() {
           // v2: módulo de simulados
           const mocks = db.createObjectStore('mockExams', { keyPath: 'id' })
           mocks.createIndex('date', 'date')
+        }
+        if (oldVersion < 3) {
+          // v3: hábitos, tarefas, anotações, calendário e "Meu Concurso". Apenas ADICIONA stores.
+          const logs = db.createObjectStore('habitLogs', { keyPath: 'id' })
+          logs.createIndex('habitId', 'habitId'); logs.createIndex('date', 'date')
+          for (const n of ['habits', 'tasks', 'notes', 'contests', 'studyCycle']) db.createObjectStore(n, { keyPath: 'id' })
+          db.createObjectStore('events', { keyPath: 'id' }).createIndex('date', 'date')
+          const syl = db.createObjectStore('syllabus', { keyPath: 'id' })
+          syl.createIndex('contestId', 'contestId'); syl.createIndex('subjectId', 'subjectId')
+          db.createObjectStore('cycleSessions', { keyPath: 'id' }).createIndex('date', 'date')
         }
       },
       blocking() {

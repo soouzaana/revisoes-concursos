@@ -17,6 +17,7 @@ export function validateStudy(f) {
   if (empty(f.topic)) e.topic = 'Informe o assunto estudado.'
   else if (f.topic.trim().length > 200) e.topic = 'Use até 200 caracteres.'
   if (f.notes && f.notes.length > 2000) e.notes = 'Use até 2000 caracteres.'
+  if (f.minutes !== '' && f.minutes != null && !(Number(f.minutes) >= 0 && Number(f.minutes) <= 1440)) e.minutes = 'Informe de 0 a 1440 minutos.'
   return e
 }
 
