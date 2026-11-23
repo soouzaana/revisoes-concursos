@@ -7,6 +7,7 @@ import { isDue, isMastered, newCardFields } from '../services/flashcardEngine'
 import { backfillCardHistory, reviewFlashcard } from '../services/flashcardService'
 import { useClockStore } from './clock'
 import { useReviewsStore } from './reviews'
+import { useEditalStore } from './edital'
 import { useActivityStore } from './activity'
 
 export const useFlashcardsStore = defineStore('flashcards', () => {
@@ -30,13 +31,16 @@ export const useFlashcardsStore = defineStore('flashcards', () => {
     const errors = validateFlashcard(form)
     if (hasErrors(errors)) throw Object.assign(new Error('Formulário inválido'), { errors })
     const base = { subjectId: form.subjectId, topic: form.topic.trim(), front: form.front.trim(), back: form.back.trim() }
+    let savedId = form.id
     if (form.id) {
       const prev = await getOne('flashcards', form.id)
-      await putOne('flashcards', { ...prev, ...base })
+      await putOne('flashcards', { ...prev, ...base, syllabusTopicId: form.syllabusTopicId ?? prev.syllabusTopicId ?? '' })
     } else {
-      await putOne('flashcards', { id: uid(), ...base, createdAt: new Date().toISOString(), ...newCardFields(clock.today) })
+      savedId = uid()
+      await putOne('flashcards', { id: savedId, ...base, syllabusTopicId: form.syllabusTopicId || '', createdAt: new Date().toISOString(), ...newCardFields(clock.today) })
     }
     await load()
+    if (form.syllabusTopicId) await useEditalStore().linkRecord(form.syllabusTopicId, 'flashcard', savedId)
   }
   async function remove(id) { await removeOne('flashcards', id); await load(); await useReviewsStore().load() }
   async function review(id, correct, mode = 'scheduled') {

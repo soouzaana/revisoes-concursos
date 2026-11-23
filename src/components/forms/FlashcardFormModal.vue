@@ -6,19 +6,20 @@ import { useToast } from '../../composables/useToast'
 import { hasErrors, validateFlashcard } from '../../utils/validators'
 import BaseModal from '../ui/BaseModal.vue'
 import SubjectSelect from './SubjectSelect.vue'
+import SyllabusTopicSelect from './SyllabusTopicSelect.vue'
 
 const props = defineProps({ open: Boolean, card: Object })
 const emit = defineEmits(['close'])
 const cards = useFlashcardsStore(), studies = useStudiesStore(), toast = useToast()
-const form = reactive({ subjectId: '', topic: '', front: '', back: '' })
+const form = reactive({ subjectId: '', syllabusTopicId: '', topic: '', front: '', back: '' })
 const errors = ref({})
 const keepOpen = ref(false)
 
 watch(() => props.open, (o) => {
   if (!o) return
   errors.value = {}
-  if (props.card) Object.assign(form, { id: props.card.id, subjectId: props.card.subjectId, topic: props.card.topic, front: props.card.front, back: props.card.back })
-  else { delete form.id; Object.assign(form, { front: '', back: '' }) }
+  if (props.card) Object.assign(form, { id: props.card.id, subjectId: props.card.subjectId, syllabusTopicId: props.card.syllabusTopicId || '', topic: props.card.topic, front: props.card.front, back: props.card.back })
+  else { delete form.id; Object.assign(form, { front: '', back: '', syllabusTopicId: '' }) }
 })
 const topicOptions = computed(() => (form.subjectId ? [...new Set([...cards.topicsFor(form.subjectId), ...studies.topicsFor(form.subjectId)])] : []))
 
@@ -36,6 +37,7 @@ async function submit() {
   <BaseModal :open="open" :title="card ? 'Editar cartão' : 'Novo cartão'" @close="emit('close')">
     <form id="fform" class="space-y-4" novalidate @submit.prevent="submit">
       <div><span class="label">Matéria</span><SubjectSelect v-model="form.subjectId" :error="errors.subjectId" /></div>
+      <SyllabusTopicSelect v-model="form.syllabusTopicId" :subject-id="form.subjectId" id="fc-syl" />
       <div>
         <label class="label" for="fc-topic">Assunto</label>
         <input id="fc-topic" v-model="form.topic" list="fc-topics" class="field" :class="{ 'field-error': errors.topic }" />

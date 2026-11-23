@@ -7,13 +7,14 @@ import { useToast } from '../../composables/useToast'
 import { hasErrors, validateQuestion } from '../../utils/validators'
 import BaseModal from '../ui/BaseModal.vue'
 import SubjectSelect from './SubjectSelect.vue'
+import SyllabusTopicSelect from './SyllabusTopicSelect.vue'
 import QuestionFields from './QuestionFields.vue'
 
 const props = defineProps({ open: Boolean, question: Object, preset: Object })
 const emit = defineEmits(['close', 'saved'])
 const questions = useQuestionsStore(), studies = useStudiesStore(), clock = useClockStore(), toast = useToast()
 
-const blank = () => ({ date: clock.today, subjectId: '', topic: '', statement: '', options: [], correctAnswer: '', chosenAnswer: '', explanation: '', status: 'not_mastered', ...props.preset })
+const blank = () => ({ date: clock.today, subjectId: '', syllabusTopicId: '', topic: '', statement: '', options: [], correctAnswer: '', chosenAnswer: '', explanation: '', status: 'not_mastered', ...props.preset })
 const form = reactive(blank())
 const errors = ref({})
 const alsoStudy = ref(true)
@@ -50,6 +51,7 @@ async function submit() {
           <p v-if="errors.date" class="hint-error">{{ errors.date }}</p>
         </div>
         <div><span class="label">Matéria</span><SubjectSelect v-model="form.subjectId" :error="errors.subjectId" /></div>
+        <SyllabusTopicSelect v-model="form.syllabusTopicId" :subject-id="form.subjectId" id="q-syl" />
       </div>
       <div>
         <label class="label" for="qf-topic">Assunto</label>

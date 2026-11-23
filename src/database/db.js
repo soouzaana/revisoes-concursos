@@ -1,8 +1,8 @@
 import { openDB, deleteDB } from 'idb'
 
 export const DB_NAME = 'revisoes-concursos'
-export const DB_VERSION = 3
-export const STORE_NAMES = ['subjects', 'studies', 'questions', 'flashcards', 'reviews', 'reviewLog', 'cycles', 'settings', 'mockExams', 'habits', 'habitLogs', 'tasks', 'notes', 'events', 'contests', 'syllabus', 'studyCycle', 'cycleSessions']
+export const DB_VERSION = 4
+export const STORE_NAMES = ['subjects', 'studies', 'questions', 'flashcards', 'reviews', 'reviewLog', 'cycles', 'settings', 'mockExams', 'habits', 'habitLogs', 'tasks', 'notes', 'events', 'contests', 'syllabus', 'studyCycle', 'cycleSessions', 'editalDocs', 'contestStages', 'topicLinks', 'editalChanges']
 
 let dbPromise = null
 
@@ -26,6 +26,14 @@ export function getDB() {
           const syl = db.createObjectStore('syllabus', { keyPath: 'id' })
           syl.createIndex('contestId', 'contestId'); syl.createIndex('subjectId', 'subjectId')
           db.createObjectStore('cycleSessions', { keyPath: 'id' }).createIndex('date', 'date')
+        }
+        if (oldVersion < 4) {
+          // v4: importação do edital, cronograma/etapas, vínculos com o histórico e registro de retificações. Só ADICIONA stores.
+          db.createObjectStore('editalDocs', { keyPath: 'id' }).createIndex('contestId', 'contestId')
+          db.createObjectStore('contestStages', { keyPath: 'id' }).createIndex('contestId', 'contestId')
+          const links = db.createObjectStore('topicLinks', { keyPath: 'id' })
+          links.createIndex('topicId', 'topicId'); links.createIndex('refId', 'refId')
+          db.createObjectStore('editalChanges', { keyPath: 'id' }).createIndex('contestId', 'contestId')
         }
       },
       blocking() {

@@ -25,7 +25,7 @@ export const useConcursoStore = defineStore('concurso', () => {
     sessions.value = ss.sort((a, b) => b.date.localeCompare(a.date) || (b.at || '').localeCompare(a.at || ''))
   }
   const current = computed(() => contests.value.find((c) => c.id === settings.currentContestId) || contests.value[0] || null)
-  const topics = computed(() => (current.value ? syllabus.value.filter((t) => t.contestId === current.value.id) : []))
+  const topics = computed(() => (current.value ? syllabus.value.filter((t) => t.contestId === current.value.id && !t.withdrawn) : []))
   const subjectIds = computed(() => current.value?.subjectIds || [])
   const progress = computed(() => syllabusProgress(topics.value))
   const progressFor = (subjectId) => syllabusProgress(topics.value.filter((t) => t.subjectId === subjectId))
@@ -85,10 +85,10 @@ export const useConcursoStore = defineStore('concurso', () => {
     await load()
   }
   /** Registra revisão do assunto (data + observação). Id estável por data e assunto: revisar de novo no mesmo dia atualiza a observação. */
-  async function reviewTopic(id, { date = clock.today, note = '' } = {}) {
+  async function reviewTopic(id, { date = clock.today, note = '', origin = '' } = {}) {
     const t = syllabus.value.find((x) => x.id === id); if (!t) return
     if (!isValidDateStr(date) || date > clock.today) throw new Error('Informe uma data válida (não futura).')
-    const rv = { id: `${id}:${date}`, date, note: note.trim(), at: new Date().toISOString() }
+    const rv = { id: `${id}:${date}${origin ? ':' + origin : ''}`, date, note: note.trim(), at: new Date().toISOString(), ...(origin ? { origin } : {}) }
     const reviews = [...plain(t.reviews || []).filter((r) => r.id !== rv.id), rv].sort((a, b) => b.date.localeCompare(a.date))
     await putOne('syllabus', { ...plain(t), reviews, lastReviewedAt: reviews[0].date, status: t.status === 'not_started' || t.status === 'studying' ? 'reviewing' : t.status }); await load()
   }

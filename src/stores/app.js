@@ -13,6 +13,7 @@ import { useTasksStore } from './tasks'
 import { useNotesStore } from './notes'
 import { useEventsStore } from './events'
 import { useConcursoStore } from './concurso'
+import { useEditalStore } from './edital'
 
 export const useAppStore = defineStore('app', () => {
   const ready = ref(false)
@@ -21,6 +22,7 @@ export const useAppStore = defineStore('app', () => {
   async function loadAll() {
     await Promise.all([useSubjectsStore().load(), useStudiesStore().load(), useQuestionsStore().load(), useFlashcardsStore().load(), useSettingsStore().load(), useMocksStore().load(), useHabitsStore().load(), useTasksStore().load(), useNotesStore().load(), useEventsStore().load()])
     await useConcursoStore().load() // depende de settings (concurso atual)
+    await useEditalStore().load()
     await useReviewsStore().sync()
   }
   async function init() {

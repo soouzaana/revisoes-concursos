@@ -7,6 +7,7 @@ import { getStudyDates } from '../services/reviewEngine'
 import { hasErrors, validateStudy } from '../utils/validators'
 import { useReviewsStore } from './reviews'
 import { useQuestionsStore } from './questions'
+import { useEditalStore } from './edital'
 
 /** Tempo estudado em minutos (opcional). */
 const cleanMinutes = (v) => { const n = Math.round(Number(v)); return Number.isFinite(n) && n > 0 && n <= 1440 ? n : 0 }
@@ -29,12 +30,14 @@ export const useStudiesStore = defineStore('studies', () => {
     const errors = validateStudy(form)
     if (hasErrors(errors)) throw Object.assign(new Error('Formulário inválido'), { errors })
     const now = new Date().toISOString()
-    const study = { id: uid(), date: form.date, subjectId: form.subjectId, topic: form.topic.trim(), notes: (form.notes || '').trim(), minutes: cleanMinutes(form.minutes), createdAt: now }
+    const study = { id: uid(), date: form.date, subjectId: form.subjectId, topic: form.topic.trim(), notes: (form.notes || '').trim(), minutes: cleanMinutes(form.minutes), syllabusTopicId: form.syllabusTopicId || '', createdAt: now }
+    const questionIds = []
     await withTx(['studies', 'questions'], 'readwrite', async (s) => {
       await s.studies.put(study)
       for (const d of questionDrafts) {
+        const qid = uid(); questionIds.push(qid)
         await s.questions.put({
-          id: uid(), studyId: study.id, date: study.date, subjectId: study.subjectId, topic: study.topic,
+          id: qid, syllabusTopicId: study.syllabusTopicId, studyId: study.id, date: study.date, subjectId: study.subjectId, topic: study.topic,
           statement: d.statement.trim(), options: (d.options || []).map((o) => o.trim()), correctAnswer: d.correctAnswer.trim(),
           chosenAnswer: (d.chosenAnswer || '').trim(), explanation: (d.explanation || '').trim(), status: 'not_mastered', createdAt: now
         })
@@ -42,6 +45,11 @@ export const useStudiesStore = defineStore('studies', () => {
     })
     await Promise.all([load(), useQuestionsStore().load()])
     await useReviewsStore().sync()
+    if (study.syllabusTopicId) { // vínculo com o edital (referência; não altera o estudo)
+      const edital = useEditalStore()
+      await edital.linkRecord(study.syllabusTopicId, 'study', study.id)
+      for (const q of questionIds) await edital.linkRecord(study.syllabusTopicId, 'question', q)
+    }
     return study
   }
 
@@ -49,9 +57,10 @@ export const useStudiesStore = defineStore('studies', () => {
     const errors = validateStudy(form)
     if (hasErrors(errors)) throw Object.assign(new Error('Formulário inválido'), { errors })
     const prev = await getOne('studies', id)
-    await putOne('studies', { ...prev, date: form.date, subjectId: form.subjectId, topic: form.topic.trim(), notes: (form.notes || '').trim(), minutes: cleanMinutes(form.minutes) })
+    await putOne('studies', { ...prev, date: form.date, subjectId: form.subjectId, topic: form.topic.trim(), notes: (form.notes || '').trim(), minutes: cleanMinutes(form.minutes), syllabusTopicId: form.syllabusTopicId ?? prev.syllabusTopicId ?? '' })
     await load()
     await useReviewsStore().sync()
+    if (form.syllabusTopicId) await useEditalStore().linkRecord(form.syllabusTopicId, 'study', id)
   }
 
   async function remove(id) {

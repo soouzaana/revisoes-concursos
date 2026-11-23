@@ -27,7 +27,9 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2,webmanifest}'],
+        // OCR (Tesseract), idioma português e leitor de PDF ficam no pré-cache: tudo funciona offline após a instalação.
+        globPatterns: ['**/*.{js,mjs,css,html,svg,png,woff2,webmanifest,wasm,gz}'],
+        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
         clientsClaim: true,

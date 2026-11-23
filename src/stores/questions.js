@@ -6,6 +6,7 @@ import { uid } from '../utils/id'
 import { hasErrors, validateQuestion } from '../utils/validators'
 import { useStudiesStore } from './studies'
 import { useReviewsStore } from './reviews'
+import { useEditalStore } from './edital'
 
 const clean = (f) => ({
   date: f.date, subjectId: f.subjectId, topic: f.topic.trim(), statement: f.statement.trim(),
@@ -29,6 +30,7 @@ export const useQuestionsStore = defineStore('questions', () => {
     if (hasErrors(errors)) throw Object.assign(new Error('Formulário inválido'), { errors })
     const data = clean(form)
     const now = new Date().toISOString()
+    let savedId = form.id || null
     await withTx(['questions', 'studies'], 'readwrite', async (s) => {
       let studyId = form.studyId || null
       if (alsoRegisterStudy && !form.id) {
@@ -37,12 +39,14 @@ export const useQuestionsStore = defineStore('questions', () => {
       }
       if (form.id) {
         const prev = await s.questions.get(form.id)
-        await s.questions.put({ ...prev, ...data })
+        await s.questions.put({ ...prev, ...data, syllabusTopicId: form.syllabusTopicId ?? prev.syllabusTopicId ?? '' })
       } else {
-        await s.questions.put({ id: uid(), studyId, ...data, createdAt: now })
+        savedId = uid()
+        await s.questions.put({ id: savedId, studyId, syllabusTopicId: form.syllabusTopicId || '', ...data, createdAt: now })
       }
     })
     await load()
+    if (form.syllabusTopicId && savedId) await useEditalStore().linkRecord(form.syllabusTopicId, 'question', savedId)
     if (alsoRegisterStudy) { await useStudiesStore().load(); await useReviewsStore().sync() }
   }
 

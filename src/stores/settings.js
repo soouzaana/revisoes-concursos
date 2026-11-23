@@ -4,6 +4,7 @@ import { getOne, putOne } from '../database/repository'
 import { DEFAULT_FREQUENCY, isValidFrequency } from '../services/mockEngine'
 import { DEFAULT_CYCLE_SIZE, MAX_CYCLE_SIZE, isValidCycleSize } from '../services/reviewEngine'
 import { DEFAULT_STREAK_CATEGORIES, CATEGORY_KEYS } from '../services/activityEngine'
+import { DEFAULT_SYNONYMS, stringifySynonyms } from '../services/editalMatcher'
 
 export const useSettingsStore = defineStore('settings', () => {
   const theme = ref('system') // 'system' | 'light' | 'dark'
@@ -15,6 +16,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const streakCategories = ref([...DEFAULT_STREAK_CATEGORIES]) // categorias que contam para a ofensiva/heatmap
   const dashboardHidden = ref([])                // indicadores ocultos na Visão geral
   const currentContestId = ref('')
+  const synonymsText = ref(stringifySynonyms(DEFAULT_SYNONYMS)) // dicionário local editável de termos equivalentes
   let mq = null
 
   function apply() {
@@ -37,6 +39,8 @@ export const useSettingsStore = defineStore('settings', () => {
     streakCategories.value = Array.isArray(sc?.value) ? sc.value.filter((k) => CATEGORY_KEYS.includes(k)) : [...DEFAULT_STREAK_CATEGORIES]
     const dh = await getOne('settings', 'dashboardHidden')
     dashboardHidden.value = Array.isArray(dh?.value) ? dh.value : []
+    const sy = await getOne('settings', 'synonyms')
+    synonymsText.value = typeof sy?.value === 'string' ? sy.value : stringifySynonyms(DEFAULT_SYNONYMS)
     const cc = await getOne('settings', 'currentContestId')
     currentContestId.value = cc?.value || ''
     theme.value = t?.value || 'system'
@@ -85,9 +89,13 @@ export const useSettingsStore = defineStore('settings', () => {
     dashboardHidden.value = plain
     await putOne('settings', { key: 'dashboardHidden', value: [...plain] })
   }
+  async function setSynonyms(text) {
+    synonymsText.value = String(text)
+    await putOne('settings', { key: 'synonyms', value: String(text) })
+  }
   async function setCurrentContest(id) {
     currentContestId.value = id || ''
     await putOne('settings', { key: 'currentContestId', value: id || '' })
   }
-  return { streakCategories, dashboardHidden, currentContestId, setStreakCategories, setDashboardHidden, setCurrentContest, theme, lastBackupAt, mockFrequencyDays, weeklyCycleSize, inactiveTopics, reviewsOnlyActive, setWeeklyCycleSize, setInactiveTopics, setReviewsOnlyActive, load, setTheme, markBackup, setMockFrequency }
+  return { synonymsText, setSynonyms, streakCategories, dashboardHidden, currentContestId, setStreakCategories, setDashboardHidden, setCurrentContest, theme, lastBackupAt, mockFrequencyDays, weeklyCycleSize, inactiveTopics, reviewsOnlyActive, setWeeklyCycleSize, setInactiveTopics, setReviewsOnlyActive, load, setTheme, markBackup, setMockFrequency }
 })

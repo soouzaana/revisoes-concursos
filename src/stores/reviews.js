@@ -7,6 +7,8 @@ import { useClockStore } from './clock'
 import { useStudiesStore } from './studies'
 import { useQuestionsStore } from './questions'
 import { useActivityStore } from './activity'
+import { useConcursoStore } from './concurso'
+import { topicKey } from '../utils/text'
 
 export const useReviewsStore = defineStore('reviews', () => {
   const reviews = ref([])
@@ -52,7 +54,19 @@ export const useReviewsStore = defineStore('reviews', () => {
     await recordQuestionAnswer({ reviewId, question, correct, today: clock.today })
     await load()
   }
-  async function complete(id) { const r = await completeReview(id, clock.today); await load(); return r }
+  /** Concluir uma revisão do caderno registra também a revisão nos assuntos do edital associados aos estudos dela. */
+  async function complete(id) {
+    const rv = enriched.value.find((x) => x.id === id)
+    const r = await completeReview(id, clock.today); await load()
+    try {
+      const studies = useStudiesStore().items
+      const ids = new Set()
+      for (const t of rv?.content?.topics || []) for (const s of studies) if (s.syllabusTopicId && topicKey(s.subjectId, s.topic) === topicKey(t.subjectId, t.topic)) ids.add(s.syllabusTopicId)
+      const concurso = useConcursoStore()
+      for (const tid of ids) if (concurso.syllabus.some((x) => x.id === tid)) await concurso.reviewTopic(tid, { note: `Revisão ${rv.type === 'daily' ? 'diária' : 'semanal'} do caderno`, origin: `review:${id}` })
+    } catch (e) { console.error('vínculo da revisão com o edital falhou', e) } // nunca impede concluir a revisão
+    return r
+  }
 
   return { reviews, logs, cycles, load, sync, enriched, dailyPending, weeklyPending, dailyPendingActive, weeklyPendingActive, dailyDone, weeklyDone, find, openCycle, start, answer, complete }
 })

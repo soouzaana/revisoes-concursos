@@ -42,7 +42,7 @@ export function collectEvents(data, today) {
       title: r.type === 'daily' ? `Revisão diária de ${r.refDate?.split('-').reverse().join('/')}` : `Revisão semanal do ciclo ${r.cycleNumber ?? ''}`.trim(), detail: 'Caderno de erros', to: `/revisoes/${encodeURIComponent(r.id)}` })
   }
   for (const t of data.syllabus || []) {
-    for (const rv of t.reviews || []) push({ id: `topic-review:${rv.id}`, category: 'review', date: rv.date, at: rv.at || `${rv.date}T12:00:00`, title: `Revisou ${t.name}`, detail: [nameOf(t.subjectId), rv.note].filter(Boolean).join(' · '), to: '/concurso/revisao-assuntos' })
+    for (const rv of t.reviews || []) if (!rv.origin) push({ id: `topic-review:${rv.id}`, category: 'review', date: rv.date, at: rv.at || `${rv.date}T12:00:00`, title: `Revisou ${t.name}`, detail: [nameOf(t.subjectId), rv.note].filter(Boolean).join(' · '), to: '/concurso/revisao-assuntos' })
   }
   // Flashcards: um evento por dia (agrupa as respostas); intensidade = 1 unidade a cada 10 cartões.
   const byDay = new Map()

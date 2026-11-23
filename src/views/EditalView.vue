@@ -1,6 +1,7 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
-import { Pencil, Plus, Trash2, ChevronDown, CalendarClock } from 'lucide-vue-next'
+import { RouterLink } from 'vue-router'
+import { Pencil, Plus, Trash2, ChevronDown, CalendarClock, FileUp } from 'lucide-vue-next'
 import { useConcursoStore } from '../stores/concurso'
 import { useSubjectsStore } from '../stores/subjects'
 import { useSettingsStore } from '../stores/settings'
@@ -46,12 +47,15 @@ async function addTopic(sid) {
 async function removeSubject(s) {
   if (await confirm({ title: 'Remover do edital', message: `Remover "${s.name}" e seus assuntos deste edital?\nA matéria e seus estudos continuam no app.`, confirmLabel: 'Remover', danger: true })) await concurso.removeSubject(s.id)
 }
-const statusColor = { not_started: 'bg-sunken', studying: 'bg-warn', studied: 'bg-accent/60', reviewing: 'bg-accent', mastered: 'bg-ok' }
+const statusColor = { not_started: 'bg-sunken', studying: 'bg-warn', partial: 'bg-warn/60', studied: 'bg-accent/60', reviewing: 'bg-accent', mastered: 'bg-ok' }
 </script>
 
 <template>
   <PageHeader title="Edital" subtitle="Acompanhe o conteúdo programático sem precisar montar cronograma.">
-    <button v-if="c" class="btn-line" @click="openForm(false)"><Plus :size="16" /> Novo concurso</button>
+    <RouterLink to="/concurso/importar" class="btn-primary btn-sm" data-testid="go-import"><FileUp :size="14" /> Importar edital (PDF)</RouterLink>
+    <RouterLink v-if="c" to="/concurso/cruzamento" class="btn-line btn-sm">Cruzar com o histórico</RouterLink>
+    <RouterLink v-if="c" to="/concurso/acompanhamento" class="btn-line btn-sm">Cronograma</RouterLink>
+    <button v-if="c" class="btn-line btn-sm" @click="openForm(false)"><Plus :size="14" /> Novo concurso</button>
   </PageHeader>
 
   <EmptyState v-if="!c" title="Cadastre o concurso atual" text="Informe o concurso e depois monte as matérias e os assuntos do edital.">

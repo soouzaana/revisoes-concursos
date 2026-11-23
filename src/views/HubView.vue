@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { CalendarDays, Flame, ListChecks, Layers, StickyNote, Target, Timer, ChartColumn, TrendingUp, Repeat, NotebookPen, PenLine, ClipboardCheck } from 'lucide-vue-next'
+import { CalendarDays, Flame, ListChecks, Layers, StickyNote, Target, Timer, ChartColumn, TrendingUp, Repeat, NotebookPen, PenLine, ClipboardCheck, FileUp, GitMerge, Flag } from 'lucide-vue-next'
 import PageHeader from '../components/ui/PageHeader.vue'
 
 const route = useRoute()
@@ -15,6 +15,9 @@ const HUBS = {
   ] },
   concurso: { title: 'Meu Concurso', subtitle: 'Sua preparação atual, sem precisar montar cronograma diário.', items: [
     { to: '/concurso/edital', label: 'Edital', text: 'Concurso, matérias e assuntos com status.', icon: Target },
+    { to: '/concurso/importar', label: 'Importar edital (PDF)', text: 'Leitura local do PDF, com OCR offline e revisão antes de salvar.', icon: FileUp },
+    { to: '/concurso/cruzamento', label: 'Cruzamento com o histórico', text: 'Sugestões do que você já estudou — você confirma.', icon: GitMerge },
+    { to: '/concurso/acompanhamento', label: 'Cronograma do concurso', text: 'Etapas, status, resultados e linha do tempo.', icon: Flag },
     { to: '/estudos', label: 'Registrar estudo', text: 'O que estudou hoje; gera as revisões.', icon: PenLine },
     { to: '/concurso/ciclo', label: 'Ciclo de estudos', text: 'Sequência e tempo por matéria (opcional).', icon: Timer },
     { to: '/concurso/estatisticas', label: 'Estatísticas', text: 'Horas, questões, assuntos e evolução mensal.', icon: ChartColumn },

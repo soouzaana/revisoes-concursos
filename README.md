@@ -79,6 +79,19 @@ Três áreas + histórico (sidebar no desktop, barra inferior no celular):
 - **Revisões diárias/semanais** (frequência configurável), **matérias/assuntos ativos** e **Caderno de erros** continuam como antes.
 - **Tempo de estudo:** ao registrar um estudo é possível informar os minutos (opcional). O tempo das sessões do ciclo é somado ao dos estudos; não registre o mesmo tempo nos dois lugares.
 
+## Importação do edital, cruzamento e acompanhamento (v4) — custo zero
+
+Tudo roda **no seu aparelho**: nenhum PDF é enviado a servidor, não há chave de API, backend, assinatura nem serviço pago. Funciona offline depois de instalado como PWA (os arquivos do OCR e do PDF.js ficam no pacote).
+
+- **Importar edital** (`Meu Concurso → Importar edital`): o texto do PDF é extraído com **PDF.js**; páginas sem texto (escaneadas) passam por **OCR local com Tesseract.js** (português). A interpretação usa **regras e expressões regulares** — *não é inteligência artificial*. Identifica nome/órgão, cargo, banca, vagas, data da prova, conteúdo (Disciplina → Tópico → Subtópico, com o texto original), etapas/datas e critérios de eliminação. Cada item guarda página e trecho de origem. Nada é gravado antes de você revisar e confirmar; o que for duvidoso aparece marcado para revisão e datas não encontradas ficam "A definir".
+- **Cruzamento com o histórico** (`Cruzamento`): compara os assuntos do edital com estudos, questões, flashcards e revisões (normalização, palavras-chave, similaridade e busca aproximada com **Fuse.js**, mais um **dicionário de termos equivalentes editável**). Mostra confiança (exata / provável / parcial / sem correspondência). **Nada é marcado como estudado automaticamente**: você confirma individualmente ou em lote, marca parcial/não estudado, ignora ou associa manualmente. O vínculo guarda só a referência ao registro original (sem duplicar sessões nem alterar o histórico) e estudar um assunto não marca os subtópicos.
+- **Cronograma e acompanhamento**: etapas com datas, horário, status (9 opções), nota, classificação, resultado e observações, linha do tempo, contagem regressiva e situação do candidato. Status nunca avança sozinho porque a data passou.
+- **Retificações**: importe o novo PDF, veja as diferenças (datas, etapas, conteúdo) e aplique só o que confirmar. Nada é apagado: itens removidos ficam preservados e ocultos; status, resultados e notas são mantidos; o histórico de alterações e a origem ficam registrados.
+- **Integração**: ao registrar estudo, questão ou flashcard é possível escolher o assunto do edital; revisões do caderno concluídas também entram no histórico do assunto (sem contar duas vezes na ofensiva). "Estudado", "revisando" e "dominado" são estados separados.
+- **Banco v4**: migração apenas adiciona stores (`editalDocs`, `contestStages`, `topicLinks`, `editalChanges`); seus dados são preservados. O backup passou à versão 4 e continua aceitando backups antigos.
+- **Bibliotecas (licenças livres)**: pdfjs-dist (Apache-2.0), tesseract.js e tesseract.js-core (Apache-2.0), dados `por` (MIT), fuse.js (Apache-2.0), idb (ISC), Vue/Pinia/Vue Router (MIT). Se quiser hospedar online, use apenas hospedagem estática gratuita (GitHub Pages ou Cloudflare Pages).
+- **Limites**: OCR depende da qualidade do PDF e pode errar; por isso a revisão manual é obrigatória antes de confirmar.
+
 ## Atualização do banco (v3) e seus dados
 O banco passou à **versão 3** e a atualização apenas **adiciona** stores (hábitos, tarefas, anotações, eventos, concursos, edital, ciclo e sessões); nenhum dado existente é alterado ou apagado. Ao publicar a nova versão no mesmo endereço, seus dados são mantidos. Backups v1/v2 continuam compatíveis e o backup v3 inclui os módulos novos.
 

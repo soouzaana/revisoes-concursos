@@ -3,14 +3,18 @@
 import { ref } from 'vue'
 import { Plus, Trash2, Check, X } from 'lucide-vue-next'
 import { useConcursoStore } from '../../stores/concurso'
+import { useEditalStore } from '../../stores/edital'
+import { computed } from 'vue'
 import { useToast } from '../../composables/useToast'
 import { useConfirm } from '../../composables/useConfirm'
 import { TOPIC_STATUS } from '../../services/concursoEngine'
 
 const props = defineProps({ node: { type: Object, required: true }, depth: { type: Number, default: 0 } })
 const concurso = useConcursoStore(), toast = useToast(), confirm = useConfirm()
+const edital = useEditalStore()
+const linked = computed(() => { const c = { study: 0, question: 0, flashcard: 0 }; for (const l of edital.linksByTopic[props.node.id] || []) if (l.kind in c) c[l.kind]++; const parts = []; if (c.study) parts.push(`${c.study} estudo(s)`); if (c.question) parts.push(`${c.question} questão(ões)`); if (c.flashcard) parts.push(`${c.flashcard} card(s)`); return parts.join(' · ') })
 const adding = ref(false), name = ref('')
-const tone = { not_started: 'text-mute', studying: 'text-warn', studied: 'text-accent', reviewing: 'text-accent', mastered: 'text-ok' }
+const tone = { not_started: 'text-mute', studying: 'text-warn', partial: 'text-warn', studied: 'text-accent', reviewing: 'text-accent', mastered: 'text-ok' }
 
 async function addChild() {
   try { await concurso.addTopic({ subjectId: props.node.subjectId, name: name.value, parentId: props.node.id }); name.value = ''; adding.value = false } catch (e) { toast.error(e.message) }
@@ -25,6 +29,7 @@ async function del() {
   <li>
     <div class="flex items-center gap-2 py-1.5" :style="{ paddingLeft: depth * 16 + 'px' }" data-testid="topic-row">
       <span class="min-w-0 flex-1 truncate text-sm" :class="node.status === 'mastered' && 'text-mute'">{{ node.name }}</span>
+      <span v-if="linked" class="hidden shrink-0 text-[11px] text-mute sm:inline" data-testid="topic-links">{{ linked }}</span>
       <select :value="node.status" class="rounded-lg border border-line bg-surface px-2 py-1 text-xs font-semibold" :class="tone[node.status]" :aria-label="`Status de ${node.name}`" @change="concurso.updateTopic(node.id, { status: $event.target.value })">
         <option v-for="(l, k) in TOPIC_STATUS" :key="k" :value="k">{{ l }}</option>
       </select>

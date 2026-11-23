@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
-import { House, Flame, History, LayoutGrid, Target, Settings, WifiOff, CalendarDays, ListChecks, Layers, StickyNote, Repeat, NotebookPen, PenLine, ChartColumn, TrendingUp, Timer, ClipboardCheck } from 'lucide-vue-next'
+import { House, Flame, History, LayoutGrid, Target, Settings, WifiOff, CalendarDays, ListChecks, Layers, StickyNote, Repeat, NotebookPen, PenLine, ChartColumn, TrendingUp, Timer, ClipboardCheck, FileUp, GitMerge, Flag } from 'lucide-vue-next'
 import { useAppStore } from './stores/app'
 import { useReviewsStore } from './stores/reviews'
 import { useFlashcardsStore } from './stores/flashcards'
@@ -29,6 +29,9 @@ const sections = [
     { to: '/anotacoes', label: 'Anotações', icon: StickyNote, name: 'notes' }] },
   { title: 'Meu Concurso', items: [
     { to: '/concurso/edital', label: 'Edital', icon: Target, name: 'edital' },
+    { to: '/concurso/importar', label: 'Importar edital', icon: FileUp, name: 'edital-import' },
+    { to: '/concurso/cruzamento', label: 'Cruzamento', icon: GitMerge, name: 'edital-match' },
+    { to: '/concurso/acompanhamento', label: 'Cronograma', icon: Flag, name: 'schedule' },
     { to: '/estudos', label: 'Registrar estudo', icon: PenLine, name: 'studies' },
     { to: '/revisoes', label: 'Revisões', icon: Repeat, name: 'reviews', badge: true },
     { to: '/concurso/revisao-assuntos', label: 'Revisão de assuntos', icon: ClipboardCheck, name: 'topic-review' },

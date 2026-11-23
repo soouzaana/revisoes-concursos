@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, reactive, ref } from 'vue'
+import SyllabusTopicSelect from '../components/forms/SyllabusTopicSelect.vue'
 import { ChevronDown, Pencil, Trash2, X, FileQuestion, Plus } from 'lucide-vue-next'
 import { useStudiesStore } from '../stores/studies'
 import { useQuestionsStore } from '../stores/questions'
@@ -21,7 +22,7 @@ import SubjectsManager from '../components/forms/SubjectsManager.vue'
 const studies = useStudiesStore(), questions = useQuestionsStore(), subjects = useSubjectsStore(), clock = useClockStore(), concurso = useConcursoStore()
 const toast = useToast(), confirm = useConfirm()
 
-const form = reactive({ date: clock.today, subjectId: '', topic: '', notes: '', minutes: '' })
+const form = reactive({ date: clock.today, subjectId: '', topic: '', notes: '', minutes: '', syllabusTopicId: '' })
 const errors = ref({})
 const qErrors = ref({})
 const showQ = ref(false)
@@ -52,7 +53,7 @@ async function submit() {
     const n = drafts.value.length
     await studies.add(form, drafts.value)
     toast.ok(n ? `Estudo registrado com ${plural(n, 'questão', 'questões')}` : 'Estudo registrado')
-    form.topic = ''; form.notes = ''; form.minutes = ''; drafts.value = []; resetDraft(); showQ.value = false
+    form.topic = ''; form.notes = ''; form.minutes = ''; form.syllabusTopicId = ''; drafts.value = []; resetDraft(); showQ.value = false
     await nextTick(); document.getElementById('st-topic')?.focus()
   } catch (e) { e.errors ? (errors.value = e.errors) : toast.error(e.message) } finally { saving.value = false }
 }
@@ -90,6 +91,7 @@ const days = computed(() => Object.keys(studies.byDate).sort().reverse())
       <datalist id="st-topics"><option v-for="t in topicOptions" :key="t" :value="t" /></datalist>
       <p v-if="errors.topic" class="hint-error">{{ errors.topic }}</p>
     </div>
+    <SyllabusTopicSelect v-model="form.syllabusTopicId" :subject-id="form.subjectId" id="st-syl" />
     <div class="sm:w-1/2">
       <label class="label" for="st-minutes">Tempo estudado em minutos <span class="font-normal text-mute">(opcional)</span></label>
       <input id="st-minutes" v-model="form.minutes" type="number" min="0" max="1440" inputmode="numeric" class="field" :class="{ 'field-error': errors.minutes }" placeholder="Ex.: 90" />

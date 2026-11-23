@@ -2,18 +2,19 @@ import { diffDays, monthKey } from '../utils/date'
 import { norm } from '../utils/text'
 
 export const TOPIC_STATUS = {
-  not_started: 'Não iniciado', studying: 'Estudando', studied: 'Estudado', reviewing: 'Revisando', mastered: 'Dominado'
+  not_started: 'Não iniciado', studying: 'Estudando', partial: 'Parcialmente estudado', studied: 'Estudado', reviewing: 'Revisando', mastered: 'Dominado'
 }
 export const STATUS_ORDER = Object.keys(TOPIC_STATUS)
 export const CONTEST_STATUS = { open: 'Edital aberto', planned: 'Previsto', studying: 'Em preparação', done: 'Prova realizada', closed: 'Encerrado' }
 export const ATTENTION_DAYS = 14
 
-export function syllabusProgress(topics) {
+export function syllabusProgress(allTopics) {
+  const topics = allTopics.filter((t) => !t.withdrawn) // assuntos retirados por retificação não entram na conta
   const count = Object.fromEntries(STATUS_ORDER.map((s) => [s, 0]))
   for (const t of topics) count[t.status] = (count[t.status] || 0) + 1
   const total = topics.length
   const done = count.studied + count.reviewing + count.mastered
-  return { total, count, done, completionPct: total ? Math.round((done / total) * 100) : 0, masteredPct: total ? Math.round((count.mastered / total) * 100) : 0 }
+  return { total, count, done, pending: total - done, completionPct: total ? Math.round((done / total) * 100) : 0, masteredPct: total ? Math.round((count.mastered / total) * 100) : 0 }
 }
 
 /** Constrói a árvore matéria → assunto → subassuntos a partir da lista plana. */
